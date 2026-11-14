@@ -1,16 +1,20 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import BrandMark from '../components/BrandMark'
 import PasswordField from '../components/PasswordField'
 
+const API_BASE = 'https://jaga-roda-backend.vercel.app'
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SignIn() {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({ email: '', password: '', remember: false })
   const [errors, setErrors] = useState({})
   const [feedback, setFeedback] = useState('')
+  const [feedbackType, setFeedbackType] = useState('success')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     const nextErrors = {}
 
@@ -20,8 +24,54 @@ export default function SignIn() {
 
     setErrors(nextErrors)
     setFeedback('')
-    if (Object.keys(nextErrors).length === 0) {
-      setFeedback('Form tervalidasi. Autentikasi belum terhubung ke backend.')
+    if (Object.keys(nextErrors).length > 0) return
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          password: formData.password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        const storage = formData.remember ? localStorage : sessionStorage
+        storage.setItem('access_token', data.data.access_token)
+        storage.setItem('refresh_token', data.data.refresh_token)
+        storage.setItem('user', JSON.stringify(data.data.user))
+
+        setFeedbackType('success')
+        setFeedback('Login berhasil! Mengalihkan...')
+
+        const role = data.data.user?.role
+        setTimeout(() => {
+          if (role === 'Admin') {
+            navigate('/admin/dashboard')
+          } else {
+            navigate('/dashboard')
+          }
+        }, 1000)
+      } else {
+        setFeedbackType('error')
+        const message = data.detail
+          ? typeof data.detail === 'string'
+            ? data.detail
+            : Array.isArray(data.detail)
+              ? data.detail.map((err) => err.msg).join(', ')
+              : 'Login gagal.'
+          : data.message || 'Email atau password salah.'
+        setFeedback(message)
+      }
+    } catch {
+      setFeedbackType('error')
+      setFeedback('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -70,9 +120,11 @@ export default function SignIn() {
               />
               Remember Me
             </label>
-            {feedback && <p role="status" className="rounded-lg border border-[#BFE8E2] bg-[#F0FBF9] px-3 py-2.5 font-plusJakartaSans text-xs leading-5 text-[#0F625C]">{feedback}</p>}
-            <button type="submit" className="w-full rounded-lg bg-[#0F766E] px-4 py-3 font-plusJakartaSans text-sm font-bold text-white hover:bg-[#0B625C]">
-              Sign In
+            {feedback && (
+              <p role="status" className={`rounded-lg border px-3 py-2.5 font-plusJakartaSans text-xs leading-5 ${feedbackType === 'error' ? 'border-[#FECDD3] bg-[#FFF1F2] text-[#BA1A1A]' : 'border-[#BFE8E2] bg-[#F0FBF9] text-[#0F625C]'}`}>{feedback}</p>
+            )}
+            <button type="submit" disabled={isSubmitting} className="w-full rounded-lg bg-[#0F766E] px-4 py-3 font-plusJakartaSans text-sm font-bold text-white hover:bg-[#0B625C] disabled:cursor-not-allowed disabled:opacity-60">
+              {isSubmitting ? 'Masuk...' : 'Sign In'}
             </button>
           </form>
           <p className="mt-5 text-center font-plusJakartaSans text-sm text-[#47607E]">
@@ -88,7 +140,7 @@ export default function SignIn() {
         <h2 className="mt-7 font-plusJakartaSans text-2xl font-bold leading-snug">Satu alur untuk armada dan aktivitas rental.</h2>
         <p className="mt-3 font-plusJakartaSans text-sm leading-6 text-[#DDEAF2]">Dashboard operasional JagaRoda menyatukan informasi kendaraan, pemesanan, handover, lokasi, dan perawatan.</p>
         <div className="mt-8 h-px bg-white/15" />
-        <p className="mt-5 font-plusJakartaSans text-xs leading-5 text-[#AFC2D3]">Autentikasi akun belum diaktifkan. Form ini hanya memeriksa input pada browser.</p>
+        <p className="mt-5 font-plusJakartaSans text-xs leading-5 text-[#AFC2D3]">Autentikasi terhubung ke API JagaRoda melalui Supabase GoTrue Auth.</p>
       </aside>
     </section>
   )

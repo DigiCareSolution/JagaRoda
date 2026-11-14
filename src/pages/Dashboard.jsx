@@ -1,11 +1,108 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
 
+const API_BASE = 'https://jaga-roda-backend.vercel.app'
+
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [activeVehicleStatus, setActiveVehicleStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // State User dari Backend API (/user/me & /user)
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('user') || sessionStorage.getItem('user')
+      return stored ? JSON.parse(stored) : null
+    } catch {
+      return null
+    }
+  })
+  const [userList, setUserList] = useState([])
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [userError, setUserError] = useState('')
+
+  const fetchUserData = useCallback(async () => {
+    setIsLoadingUser(true)
+    setUserError('')
+    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
+
+    if (!token) {
+      setIsLoadingUser(false)
+      setUserError('Token autentikasi tidak ditemukan. Silakan sign in terlebih dahulu.')
+      return
+    }
+
+    try {
+      // 1. Ambil profil user saat ini (/user/me)
+      const meRes = await fetch(`${API_BASE}/user/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (meRes.status === 401) {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user')
+        sessionStorage.removeItem('access_token')
+        sessionStorage.removeItem('refresh_token')
+        sessionStorage.removeItem('user')
+        navigate('/signin')
+        return
+      }
+
+      if (meRes.ok) {
+        const meData = await meRes.json()
+        if (meData.data) {
+          setCurrentUser(meData.data)
+          if (localStorage.getItem('access_token')) {
+            localStorage.setItem('user', JSON.stringify(meData.data))
+          } else {
+            sessionStorage.setItem('user', JSON.stringify(meData.data))
+          }
+        }
+      } else {
+        const errData = await meRes.json().catch(() => ({}))
+        setUserError(errData.detail || errData.message || 'Gagal memuat profil pengguna.')
+      }
+
+      // 2. Ambil daftar staf / user terdaftar (/user)
+      const listRes = await fetch(`${API_BASE}/user?limit=6&offset=0`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (listRes.ok) {
+        const listData = await listRes.json()
+        if (Array.isArray(listData.data)) {
+          setUserList(listData.data)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard user data:', err)
+      setUserError('Tidak dapat terhubung ke server backend.')
+    } finally {
+      setIsLoadingUser(false)
+    }
+  }, [navigate])
+
+  useEffect(() => {
+    fetchUserData()
+  }, [fetchUserData])
+
+  const todayFormatted = useMemo(() => {
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date())
+  }, [])
 
   // Vehicle data for "Kondisi Kendaraan"
   const vehicles = [
@@ -85,8 +182,10 @@ export default function Dashboard() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         searchPlaceholder="Cari kendaraan, nomor polisi..."
-        greeting="Selamat Datang, Nino"
-        subtitle="Senin, 24 Oktober 2024 • Shift Pagi Ops"
+        greeting={`Selamat Datang, ${currentUser?.username || 'Pengelola'}`}
+        subtitle={`${todayFormatted} • Shift ${currentUser?.role || 'Staff'} Ops`}
+        user={currentUser}
+        onRefresh={fetchUserData}
       />
 
       {/* Main Content */}
@@ -113,20 +212,35 @@ export default function Dashboard() {
               </p>
             </div>
             <h2 className="mt-1 font-plusJakartaSans text-2xl font-bold tracking-tight text-[#111D23] sm:text-[26px]">
-              Halo, Nino!
+              Halo, {currentUser?.username || 'Pengelola'}!
             </h2>
             <p className="mt-0.5 font-plusJakartaSans text-sm text-[#47607E]">
-              Ringkasan operasional dan kelaikan kendaraan rental hari ini.
+              {currentUser ? (
+                <>
+                  Masuk sebagai <strong className="text-[#0F766E]">{currentUser.role}</strong>
+                  {currentUser.phone ? ` • No. HP: ${currentUser.phone}` : ''}
+                </>
+              ) : (
+                'Ringkasan operasional dan kelaikan kendaraan rental hari ini.'
+              )}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-2 rounded-lg bg-[#DDEAF2] px-3.5 py-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#15803D]"></span>
+              <span className={`h-2.5 w-2.5 rounded-full ${currentUser ? 'bg-[#15803D]' : 'bg-[#B45309]'}`}></span>
               <p className="font-plusJakartaSans text-xs font-semibold text-[#3E4947] sm:text-[13px]">
-                10 Unit Online (GPS Aktif)
+                {currentUser ? `${currentUser.username} (${currentUser.role})` : 'Tamu'}
               </p>
             </div>
+            {currentUser?.role === 'Admin' && (
+              <Link
+                to="/admin/dashboard"
+                className="flex items-center gap-1.5 rounded-lg border border-[#0F766E] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F766E] shadow-xs transition-colors hover:bg-[#F0FBF9] sm:text-[13px]"
+              >
+                Panel Admin
+              </Link>
+            )}
             <button
               type="button"
               className="flex items-center gap-1.5 rounded-lg bg-[#0F766E] px-3.5 py-2 text-white shadow-xs transition-colors hover:bg-[#0D655E]"
@@ -149,6 +263,23 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* Notifikasi / Error State jika belum login atau token invalid */}
+        {userError && (
+          <div className="flex w-full items-center justify-between rounded-xl border border-[#FECDD3] bg-[#FFF1F2] p-4 text-xs font-medium text-[#BA1A1A]">
+            <div className="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{userError}</span>
+            </div>
+            <Link to="/signin" className="font-bold underline hover:text-[#991B1B]">
+              Sign In Sekarang
+            </Link>
+          </div>
+        )}
 
         {/* 4 Kartu Metrik Utama */}
         <div className="grid w-full grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -844,6 +975,65 @@ export default function Dashboard() {
                   Permintaan rental diproyeksikan naik 35% hari Jumat ini. Pastikan servis Honda Mobilio dan Xpander selesai sebelum Kamis sore.
                 </p>
               </div>
+            </div>
+
+            {/* Card: Staf & Pengguna Terdaftar (Data live dari GET /user) */}
+            <div className="flex w-full flex-col items-start gap-3.5 rounded-xl border border-[#E3F0F8] bg-white p-4 shadow-xs">
+              <div className="flex w-full items-center justify-between">
+                <div>
+                  <h4 className="font-plusJakartaSans text-sm font-bold text-[#111D23] sm:text-base">
+                    Staf & Pengguna Terdaftar
+                  </h4>
+                  <p className="font-plusJakartaSans text-[11px] text-[#47607E]">
+                    Akun terintegrasi database Supabase
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#E9F6FD] px-2.5 py-1 font-plusJakartaSans text-[11px] font-semibold text-[#0F766E]">
+                  {userList.length} Pengguna
+                </span>
+              </div>
+
+              {isLoadingUser ? (
+                <div className="flex w-full items-center justify-center py-6 text-xs text-[#47607E]">
+                  <span>Memuat data pengguna...</span>
+                </div>
+              ) : userList.length === 0 ? (
+                <div className="w-full rounded-lg bg-[#F8FAFC] p-3 text-center text-xs text-[#6E7977]">
+                  Belum ada data pengguna lainnya.
+                </div>
+              ) : (
+                <div className="flex w-full flex-col gap-2">
+                  {userList.map((item) => (
+                    <div
+                      key={item.user_id}
+                      className="flex items-center justify-between rounded-lg bg-[#F8FAFC] p-2.5 transition-colors hover:bg-[#E9F6FD]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0F766E] font-plusJakartaSans text-xs font-bold text-white shadow-xs">
+                          {item.username ? item.username.charAt(0).toUpperCase() : 'U'}
+                        </span>
+                        <div className="flex flex-col min-w-0">
+                          <p className="truncate font-plusJakartaSans text-xs font-bold text-[#111D23]">
+                            {item.username}
+                          </p>
+                          <p className="truncate font-plusJakartaSans text-[11px] text-[#47607E]">
+                            {item.phone ? item.phone : 'Tanpa nomor telepon'}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-plusJakartaSans text-[10px] font-semibold ${
+                          item.role === 'Admin'
+                            ? 'bg-[#FEF3C7] text-[#B45309]'
+                            : 'bg-[#DCFCE7] text-[#15803D]'
+                        }`}
+                      >
+                        {item.role || 'Staff'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -33,7 +33,6 @@ export default function SignUp() {
 
     setIsSubmitting(true)
     try {
-      const phoneDigits = formData.phone.replace(/\D/g, '')
       const response = await fetch(`${API_BASE}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -41,7 +40,7 @@ export default function SignUp() {
           email: formData.email.trim(),
           password: formData.password,
           username: formData.fullName.trim(),
-          phone: phoneDigits ? Number(phoneDigits) : undefined,
+          phone: formData.phone.trim() || undefined,
           role: 'Staff',
         }),
       })
