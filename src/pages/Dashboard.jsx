@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
 
-const API_BASE = 'https://jaga-roda-backend.vercel.app'
+const API_BASE = import.meta.env.VITE_API_BASE
 
 export default function Dashboard() {
   const navigate = useNavigate()

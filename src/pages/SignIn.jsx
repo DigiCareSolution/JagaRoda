@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import BrandMark from '../components/BrandMark'
 import PasswordField from '../components/PasswordField'
 
-const API_BASE = 'https://jaga-roda-backend.vercel.app'
+const API_BASE = import.meta.env.VITE_API_BASE
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SignIn() {
