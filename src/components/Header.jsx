@@ -14,6 +14,7 @@ export default function Header({
   actionTo = '/pemesanan/baru',
   actionIcon,
   unreadCount = 3,
+  user = null,
 }) {
   const [localSearch, setLocalSearch] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -185,12 +186,12 @@ export default function Header({
         {/* Profile Avatar */}
         <Link
           to="/dashboard"
-          aria-label="Profil Nino"
+          aria-label={user?.username ? `Profil ${user.username}` : 'Profil Pengguna'}
           className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#DDEAF2] bg-[#E3F0F8] shadow-xs transition-transform hover:scale-105"
         >
           <img
             src="/Profile.png"
-            alt="Profil Nino"
+            alt={user?.username ? `Profil ${user.username}` : 'Profil Pengguna'}
             className="h-full w-full object-cover"
             onError={(e) => {
               e.currentTarget.style.display = 'none'
@@ -203,7 +204,7 @@ export default function Header({
             style={{ display: 'none' }}
             className="flex h-full w-full items-center justify-center bg-[#0F766E] font-plusJakartaSans text-xs font-bold text-white"
           >
-            N
+            {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
           </span>
         </Link>
       </div>

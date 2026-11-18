@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 import BrandMark from './BrandMark'
 
 const navigationItems = [
@@ -90,6 +91,39 @@ const navigationItems = [
 ]
 
 export default function Sidebar() {
+  const navigate = useNavigate()
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('user') || sessionStorage.getItem('user')
+      return stored ? JSON.parse(stored) : null
+    } catch {
+      return null
+    }
+  })
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const stored = localStorage.getItem('user') || sessionStorage.getItem('user')
+        setCurrentUser(stored ? JSON.parse(stored) : null)
+      } catch {
+        setCurrentUser(null)
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  function handleLogout() {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user')
+    sessionStorage.removeItem('access_token')
+    sessionStorage.removeItem('refresh_token')
+    sessionStorage.removeItem('user')
+    navigate('/signin')
+  }
+
   return (
     <aside className="relative z-30 flex h-auto w-full flex-col items-start bg-[#17324D] shadow-[0_1px_8px_0_rgba(0,0,0,0.06)] lg:fixed lg:inset-y-0 lg:left-0 lg:h-screen lg:w-[260px]">
       <div className="flex h-auto w-full flex-col items-start overflow-hidden lg:h-full">
@@ -138,20 +172,30 @@ export default function Sidebar() {
               aria-hidden="true"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0F766E] font-plusJakartaSans text-xs font-bold text-white shadow-xs"
             >
-              N
+              {currentUser?.username ? currentUser.username.charAt(0).toUpperCase() : 'U'}
             </span>
             <div className="flex flex-col items-start min-w-0 overflow-hidden">
               <p className="truncate font-plusJakartaSans text-[13px] font-bold leading-tight text-white">
-                Nino
+                {currentUser?.username || 'Pengguna'}
               </p>
               <p className="truncate font-plusJakartaSans text-[11px] font-medium leading-tight text-[#94A3B8]">
-                Pengelola Rental
+                {currentUser?.role ? `${currentUser.role} Rental` : 'Pengelola Rental'}
               </p>
             </div>
           </div>
-          <span aria-hidden="true" className="shrink-0 px-1 text-sm text-[#94A3B8]">
-            &#8942;
-          </span>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Keluar / Logout"
+            className="shrink-0 rounded p-1 text-[#94A3B8] transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Logout"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>

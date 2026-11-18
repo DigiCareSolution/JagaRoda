@@ -1,16 +1,20 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import BrandMark from '../components/BrandMark'
 import PasswordField from '../components/PasswordField'
 
+const API_BASE = import.meta.env.VITE_API_BASE
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SignUp() {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({ fullName: '', email: '', phone: '', password: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
   const [feedback, setFeedback] = useState('')
+  const [feedbackType, setFeedbackType] = useState('success') // 'success' | 'error'
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     const nextErrors = {}
 
@@ -25,8 +29,44 @@ export default function SignUp() {
 
     setErrors(nextErrors)
     setFeedback('')
-    if (Object.keys(nextErrors).length === 0) {
-      setFeedback('Form tervalidasi. Pendaftaran belum tersimpan karena backend belum terintegrasi.')
+    if (Object.keys(nextErrors).length > 0) return
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(`${API_BASE}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          password: formData.password,
+          username: formData.fullName.trim(),
+          phone: formData.phone.trim() || undefined,
+          role: 'Staff',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setFeedbackType('success')
+        setFeedback('Registrasi berhasil! Mengalihkan ke halaman Sign In...')
+        setTimeout(() => navigate('/signin'), 1500)
+      } else {
+        setFeedbackType('error')
+        const message = data.detail
+          ? typeof data.detail === 'string'
+            ? data.detail
+            : Array.isArray(data.detail)
+              ? data.detail.map((err) => err.msg).join(', ')
+              : 'Registrasi gagal.'
+          : data.message || 'Registrasi gagal. Silakan coba lagi.'
+        setFeedback(message)
+      }
+    } catch {
+      setFeedbackType('error')
+      setFeedback('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -43,7 +83,7 @@ export default function SignUp() {
         <h2 className="mt-7 font-plusJakartaSans text-2xl font-bold leading-snug">Mulai dengan informasi yang tertata.</h2>
         <p className="mt-3 font-plusJakartaSans text-sm leading-6 text-[#DDEAF2]">Buat profil untuk menyiapkan akses ke alur operasional kendaraan dan pemesanan JagaRoda.</p>
         <div className="mt-8 h-px bg-white/15" />
-        <p className="mt-5 font-plusJakartaSans text-xs leading-5 text-[#AFC2D3]">Form pendaftaran hanya divalidasi pada browser dan belum mengirim atau menyimpan data.</p>
+        <p className="mt-5 font-plusJakartaSans text-xs leading-5 text-[#AFC2D3]">Data pendaftaran dikirim dan disimpan melalui API JagaRoda yang terhubung ke Supabase.</p>
       </aside>
       <div className="mx-auto w-full max-w-xl">
         <div className="rounded-xl border border-[#DDEAF2] bg-white p-6 shadow-[0_12px_36px_rgba(23,50,77,0.06)] sm:p-8">
@@ -70,8 +110,12 @@ export default function SignUp() {
             </div>
             <PasswordField id="signup-password" label="Password" value={formData.password} onChange={(event) => updateField('password', event.target.value)} error={errors.password} autoComplete="new-password" />
             <PasswordField id="signup-confirm-password" label="Konfirmasi password" value={formData.confirmPassword} onChange={(event) => updateField('confirmPassword', event.target.value)} error={errors.confirmPassword} autoComplete="new-password" />
-            {feedback && <p role="status" className="rounded-lg border border-[#BFE8E2] bg-[#F0FBF9] px-3 py-2.5 font-plusJakartaSans text-xs leading-5 text-[#0F625C]">{feedback}</p>}
-            <button type="submit" className="w-full rounded-lg bg-[#0F766E] px-4 py-3 font-plusJakartaSans text-sm font-bold text-white hover:bg-[#0B625C]">Sign Up</button>
+            {feedback && (
+              <p role="status" className={`rounded-lg border px-3 py-2.5 font-plusJakartaSans text-xs leading-5 ${feedbackType === 'error' ? 'border-[#FECDD3] bg-[#FFF1F2] text-[#BA1A1A]' : 'border-[#BFE8E2] bg-[#F0FBF9] text-[#0F625C]'}`}>{feedback}</p>
+            )}
+            <button type="submit" disabled={isSubmitting} className="w-full rounded-lg bg-[#0F766E] px-4 py-3 font-plusJakartaSans text-sm font-bold text-white hover:bg-[#0B625C] disabled:cursor-not-allowed disabled:opacity-60">
+              {isSubmitting ? 'Mendaftar...' : 'Sign Up'}
+            </button>
           </form>
           <p className="mt-5 text-center font-plusJakartaSans text-sm text-[#47607E]">
             Sudah memiliki akun? <Link to="/signin" className="font-bold text-[#0F766E] hover:underline">Sign In</Link>
