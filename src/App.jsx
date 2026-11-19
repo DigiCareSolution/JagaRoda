@@ -65,6 +65,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="kendaraan" element={<Kendaraan />} />
             <Route path="kendaraan/detail" element={<Detail />} />
+            <Route path="kendaraan/detail/:id" element={<Detail />} />
             <Route path="pemesanan" element={<Pemesanan />} />
             <Route path="pemesanan/baru" element={<Booking />} />
             <Route path="handover" element={<Handover />} />

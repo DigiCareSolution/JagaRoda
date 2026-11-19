@@ -13,6 +13,7 @@ export default function Header({
   actionText = 'Tambah Booking',
   actionTo = '/pemesanan/baru',
   actionIcon,
+  onActionClick,
   unreadCount = 3,
   user = null,
 }) {
@@ -151,32 +152,58 @@ export default function Header({
           </svg>
         </button>
 
-        {/* Action Button (e.g. Tambah Booking) */}
+        {/* Action Button (e.g. Tambah Booking / Tambah Kendaraan) */}
         {showAction && (
           <>
             <span aria-hidden="true" className="h-5 w-px bg-[#DDEAF2]" />
-            <Link
-              to={actionTo}
-              className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#0F766E] px-3.5 font-plusJakartaSans text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#0D655E] sm:text-[13px]"
-            >
-              {actionIcon || (
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              )}
-              <span className="whitespace-nowrap">{actionText}</span>
-            </Link>
+            {onActionClick ? (
+              <button
+                type="button"
+                onClick={onActionClick}
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#0F766E] px-3.5 font-plusJakartaSans text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#0D655E] sm:text-[13px] cursor-pointer"
+              >
+                {actionIcon || (
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                )}
+                <span className="whitespace-nowrap">{actionText}</span>
+              </button>
+            ) : (
+              <Link
+                to={actionTo}
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#0F766E] px-3.5 font-plusJakartaSans text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#0D655E] sm:text-[13px]"
+              >
+                {actionIcon || (
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                )}
+                <span className="whitespace-nowrap">{actionText}</span>
+              </Link>
+            )}
           </>
         )}
 
