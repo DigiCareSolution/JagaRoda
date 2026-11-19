@@ -271,8 +271,8 @@ export default function Maintenance() {
 
               <div className="relative h-40 overflow-hidden rounded-lg bg-[#E3F0F8] sm:col-span-5">
                 <img
-                  src="/Ab6axudgxcbw4i1promnhb7pg82ow2xasfaczpxgzt7fb4fxtin7hjfm2xb1wzlbl4uvvnmv9reni0uuklulwhmrpgd7gkzej6qcjgf2ek6emb_weq2uzvcahkvfuiw7xthvaron3lnfltyrxquwhppd8du3rbxs8vjxvq5t5t21dfvo1b9ei6lgmtsydipwsjhv7xxfyg0dvdbwuuczkjnxmrxzn9w_oqtfacvn419daayhfjnho4jc6a.png"
-                  alt="Bukti Kerusakan"
+                  src="https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80"
+                  alt="Bukti Servis Rem & Komponen"
                   className="h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent"></div>
@@ -364,7 +364,7 @@ export default function Maintenance() {
 
               <div className="relative h-40 overflow-hidden rounded-lg bg-[#E3F0F8] sm:col-span-5">
                 <img
-                  src="/Ab6axudyrjsbzmsiwdwphefwt2hrtl0t_rs2norzzk1i6nj6er4zry_eboz6leplwpptb0qftgetypqwq_talttgf1n6mwfp92uqw3viriphjhokyv3achmmutrpbojqc09_uuzjfholn89mw76qftywcufhktc1v6cp0qxmjolqabofly48qjjn2stq_k_bsvjvc1khklck2ctns9bg4p2vfgywpjhhu4puscmoyhwhhgxhklyqlcfynq.png"
+                  src="https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=800&q=80"
                   alt="Bukti Kerusakan Bumper"
                   className="h-full w-full object-cover"
                 />

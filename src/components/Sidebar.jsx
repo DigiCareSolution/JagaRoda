@@ -150,10 +150,9 @@ export default function Sidebar() {
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex shrink-0 items-center gap-3 rounded-lg px-3.5 py-2.5 font-plusJakartaSans text-[13px] font-semibold leading-4 tracking-[0.01em] transition-all whitespace-nowrap lg:w-full lg:whitespace-normal ${
-                  isActive
-                    ? 'bg-[#0F766E] text-white shadow-xs'
-                    : 'text-[#94A3B8] hover:bg-white/10 hover:text-white'
+                `flex shrink-0 items-center gap-3 rounded-lg px-3.5 py-2.5 font-plusJakartaSans text-[13px] font-semibold leading-4 tracking-[0.01em] transition-all whitespace-nowrap lg:w-full lg:whitespace-normal ${isActive
+                  ? 'bg-[#0F766E] text-white shadow-xs'
+                  : 'text-[#94A3B8] hover:bg-white/10 hover:text-white'
                 }`
               }
             >

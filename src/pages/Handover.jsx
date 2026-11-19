@@ -314,7 +314,7 @@ export default function Handover() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <img
-                              src="/Ab6axubcwklhf2d3saba5rilpzxtn3xscuh8z3hrznhhb5hhvttnkcvx1lw6gy8zur9fvyavp85syjgvnm36nwy88ylrz2uooq7hyc5by64lllisbbmmlcqswwf9sxysgpaqjsar8h3wp_mqp02dcfo4p3d3kqsnhb5nuecsaggbdhhfmtmuwerv58wccpoxyiazg7ntvp8_a14zislfq2nlyyn4ekei5uegpwpfbe2dz83uk0uop9v5tgezg.png"
+                              src="https://images.unsplash.com/photo-1590362891988-f77804783182?auto=format&fit=crop&w=600&q=80"
                               alt="Honda Brio Satya E"
                               className="h-14 w-14 shrink-0 rounded-lg border border-[#E3F0F8] bg-[#E9F6FD] object-cover"
                             />
@@ -425,7 +425,7 @@ export default function Handover() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <img
-                              src="/Ab6axubgt84ocmdvbdruxfbgtkf5uekjuecpiebcxuxsetfoywbqim2mp9z_xagh47zodec1lv8izoji7tjtt3jkmxwch4efhwu61pyndlbsiv1sava7ucjb27mx8qve5hezy3jvtoz8oql3kcov4nvjefqhi77phq69eueraciusmssnjz0w0mu0low1ijblarvemm1arj8hrpslycd5cnhuhwgz07rjwuq6nsqe74xrc5cvxst0cfqzg.png"
+                              src="https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80"
                               alt="Toyota Avanza 1.3 G"
                               className="h-14 w-14 shrink-0 rounded-lg border border-[#E3F0F8] bg-[#E9F6FD] object-cover"
                             />
@@ -512,7 +512,7 @@ export default function Handover() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <img
-                              src="/Ab6axuacuow4yulmefkmkdg_buaywst_gyb4t6grgkof1cvqa7ddqu8fvlyiji1kb4cgishsmaegr8orlc1qrpmnrm3wbek0wvwetw4sfvft_zhlm0dklqghsyawbjjmdc8avacslyp0hn8uvdf8nkhbi1tskhb4kzab5qrvwvybanl8f2ncj2je7iajqr5gkgbvr30b4q8h3snfffuumjs8qudj7tkorhu5eudtoy75hipngriu3yea4ha.png"
+                              src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=600&q=80"
                               alt="Suzuki Ertiga Hybrid"
                               className="h-14 w-14 shrink-0 rounded-lg border border-[#E3F0F8] bg-[#E9F6FD] object-cover"
                             />
@@ -645,7 +645,7 @@ export default function Handover() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <img
-                              src="/Ab6axudjmnx2hksvcq5xjquefazfkppnlorkyyhh_nvphoacnwwfogbxxx3s0almde41qx7kdupe_aazcsfnsugwssj4bo4fuysubspugokczhonbsy9dw_vzifxqk1fq04ptafcqtp8__fg4mo6rngca2vcip6til1xpsebk2ltqoxwa8suxek2yjiv6qtaow4k_tdcascx4xve5wqty8lylszexhqb0h9khvnhtr2pvwtfnaazrcehq.png"
+                              src="https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&w=600&q=80"
                               alt="Daihatsu Xenia 1.3 R"
                               className="h-14 w-14 shrink-0 rounded-lg border border-[#FECACA] bg-[#FEF2F2] object-cover"
                             />
@@ -751,7 +751,7 @@ export default function Handover() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <img
-                              src="/Ab6axuafzfe53axtr0cs9bngcv_elpyh0tqt1wc7oaw1duqsqxvqqmmsbx8lusyd2fw6ds6gb9o0agrhvubxyuyarbju37qvfrdolksws5o3l3ktpjdbcmcvagqsy4v8x7xz26c1yeglfhnxzz6ltevsc1bgejujajpumzg6udx8hz3kytsb3q2ezxhpk0uc8i9glsx0eiklhtcot7u6dxdmd4yqlqblgo80ofpb3hr2nvuxwnzld5lv7uua.png"
+                              src="https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=600&q=80"
                               alt="Toyota Innova Zenix"
                               className="h-14 w-14 shrink-0 rounded-lg border border-[#E3F0F8] bg-[#E9F6FD] object-cover"
                             />
@@ -843,7 +843,7 @@ export default function Handover() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <img
-                              src="/Ab6axuctw4yr1c4fixmlicpevkbauoottq_hsji2seqxoxwpi5kgkfv95f8mxqvyl8zpzljqpanlyjkgahuqhfeuxspzvxsmcfgekyxsslsfy6qaijjfxnt5pisyej6oc90z6nnfg1dwtilz8jzyloto7yowcezimmmf0ecwsiu6gblvjzigwscgoczqtswbziq44bs8rqe2ejtuxtr48q1_dogu_xgic_cbe3p_kw2kfsokmacolfulnga.png"
+                              src="https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=600&q=80"
                               alt="Honda Mobilio E CVT"
                               className="h-14 w-14 shrink-0 rounded-lg border border-[#E3F0F8] bg-[#E9F6FD] object-cover"
                             />

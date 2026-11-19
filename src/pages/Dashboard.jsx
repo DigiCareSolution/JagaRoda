@@ -116,14 +116,14 @@ export default function Dashboard() {
       statusBadgeBg: 'bg-[#DCFCE7]',
       statusBadgeText: 'text-[#15803D]',
       image:
-        '/Ab6axub2vqhda8qnmjfav8wmfignicp5jwunc4kqalfm1h4hd55qppqfhzxf70mbixy9ydrynlkesyaawc_gvfgouqdrsiy4tco9oayxgwo1pseicxmwycfwus8wez4lyb5xi80icg4s_hv9pqgval36gjxvhnyig2oufgzrojzyx8cqhtb_qo1hz09pwwsgk2cojnbspif1sb4n5bt0obzj10zkl38thgwhscsqmdy6pmgkh1h8rud9ig5g.png',
+        'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80',
       healthCondition: 'Kondisi baik',
       healthPercent: 94,
       healthColor: 'text-[#15803D]',
       healthBarColor: 'bg-[#15803D]',
       lastService: 'Servis terakhir: 18 Okt 2024',
       location: 'Depot Pusat',
-      detailUrl: '/kendaraan/detail',
+      detailUrl: '/kendaraan/detail?id=k-avanza',
     },
     {
       id: 'brio-1',
@@ -135,12 +135,12 @@ export default function Dashboard() {
       statusBadgeBg: 'bg-[#DBEAFE]',
       statusBadgeText: 'text-[#2563EB]',
       image:
-        '/Ab6axucxcgtfoxdv3rtklmm3fdbebj04vvhv9pvk8nxmgwapkpjgbuukmjq8qh4joejao4zrlyr2mfgc6tie6lcldlxblqobid_yc55opti4xldhh8ecaqe5dpmac_izqcfz7zs4fxcqe1ayacrp97epehji7hsihadi9jotd0wkht1k3uzlmvazjkayrfg23ms0bbd7pqqgsrhc8ih0gfwvpjriekc2cvphwa718etbzh2qipzvghqclg.png',
+        'https://images.unsplash.com/photo-1590362891988-f77804783182?auto=format&fit=crop&w=1200&q=80',
       renterName: 'Bpk. Dimas',
       city: 'Sidoarjo, Jawa Timur',
       returnDate: 'Return: 28 Okt 2024',
       gpsStatus: 'Live GPS On',
-      detailUrl: '/kendaraan/detail',
+      detailUrl: '/kendaraan/detail?id=k-brio',
     },
     {
       id: 'xpander-1',
@@ -152,14 +152,14 @@ export default function Dashboard() {
       statusBadgeBg: 'bg-[#FEF3C7]',
       statusBadgeText: 'text-[#B45309]',
       image:
-        '/Ab6axubnrjrjncmulncqubvuqjudl56hzsrmlltrs6g1mapiiquganqdxmn_638ilchmhylwiszvyfebnqk7eq_axjmeem6fxtt19tk_n4po2pkrnb5d55sdeotnuoa5qk0_msdik1cwmjvae0_xdpyqqlzojnybwre1zb9xav_rvwljrbbjecnukgr5xpmf6jjrlzigjjqqyoauzlza_t72sc2m3siits0l6ktvdr6gqxuz74udylo28na.png',
+        'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80',
       issueLabel: 'Rem perlu diperiksa',
       healthPercent: 42,
       healthColor: 'text-[#B45309]',
       healthBarColor: 'bg-[#B45309]',
       scheduleInfo: 'Jadwal bengkel: Besok lusa',
       location: 'Bengkel Rekanan',
-      detailUrl: '/kendaraan/detail',
+      detailUrl: '/kendaraan/detail?id=k-xpander',
     },
   ]
 

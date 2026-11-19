@@ -24,10 +24,26 @@ export default function Booking() {
   const [savedFeedback, setSavedFeedback] = useState('')
 
   const vehicleRates = {
-    avanza: { name: 'Toyota Avanza 1.3 G (L 1234 AB)', rate: 450000 },
-    brio: { name: 'Honda Brio Satya E (L 2345 BC)', rate: 350000 },
-    xpander: { name: 'Mitsubishi Xpander Ultimate (W 3456 CD)', rate: 550000 },
-    calya: { name: 'Toyota Calya 1.2 G (L 4567 DE)', rate: 300000 },
+    avanza: {
+      name: 'Toyota Avanza 1.3 G (L 1234 AB)',
+      rate: 450000,
+      image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80',
+    },
+    brio: {
+      name: 'Honda Brio Satya E (L 2345 BC)',
+      rate: 350000,
+      image: 'https://images.unsplash.com/photo-1590362891988-f77804783182?auto=format&fit=crop&w=600&q=80',
+    },
+    xpander: {
+      name: 'Mitsubishi Xpander Ultimate (W 3456 CD)',
+      rate: 550000,
+      image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80',
+    },
+    calya: {
+      name: 'Toyota Calya 1.2 G (L 4567 DE)',
+      rate: 300000,
+      image: 'https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&w=600&q=80',
+    },
   }
 
   const currentVehicle = vehicleRates[selectedVehicle] || vehicleRates.avanza
@@ -372,16 +388,23 @@ export default function Booking() {
               </div>
 
               {/* Selected Car Details */}
-              <div className="rounded-lg border border-[#DDEAF2] bg-[#F8FAFC] p-3">
-                <p className="font-plusJakartaSans text-[11px] font-semibold uppercase tracking-wider text-[#47607E]">
-                  Armada Dipilih
-                </p>
-                <p className="mt-0.5 font-plusJakartaSans text-sm font-bold text-[#111D23]">
-                  {currentVehicle.name}
-                </p>
-                <p className="mt-1 font-plusJakartaSans text-xs text-[#64748B]">
-                  Durasi: {days} Hari ({startDate} s/d {endDate})
-                </p>
+              <div className="flex items-center gap-3 rounded-lg border border-[#DDEAF2] bg-[#F8FAFC] p-3">
+                <img
+                  src={currentVehicle.image}
+                  alt={currentVehicle.name}
+                  className="h-14 w-16 shrink-0 rounded-lg border border-[#DDEAF2] bg-[#E9F6FD] object-cover"
+                />
+                <div className="flex min-w-0 flex-col">
+                  <p className="font-plusJakartaSans text-[11px] font-semibold uppercase tracking-wider text-[#47607E]">
+                    Armada Dipilih
+                  </p>
+                  <p className="truncate font-plusJakartaSans text-sm font-bold text-[#111D23]">
+                    {currentVehicle.name}
+                  </p>
+                  <p className="font-plusJakartaSans text-xs text-[#64748B]">
+                    Durasi: {days} Hari ({startDate} s/d {endDate})
+                  </p>
+                </div>
               </div>
 
               {/* Price Breakdown */}
