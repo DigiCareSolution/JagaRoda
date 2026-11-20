@@ -1,97 +1,152 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
+import GoogleMapsView from '../components/GoogleMapsView'
+
+const defaultVehicles = [
+  {
+    id: 'brio',
+    name: 'Honda Brio Satya E',
+    plate: 'L 2345 BC',
+    type: 'Compact City',
+    status: 'Bergerak • 35 km/h',
+    statusVariant: 'success',
+    isMoving: true,
+    driver: 'Ahmad Faisal (Penyewa)',
+    location: 'Jl. Raya Darmo No. 82, Wonokromo, Surabaya Pusat',
+    speed: '35 km/h',
+    fuel: '65% Tangki',
+    updated: '1 menit yang lalu',
+    coords: { lat: -7.2892, lng: 112.7383 },
+    image: 'https://images.unsplash.com/photo-1590362891988-f77804783182?auto=format&fit=crop&w=600&q=80',
+    vehicleDetailId: 'k-brio',
+  },
+  {
+    id: 'ertiga',
+    name: 'Suzuki Ertiga Hybrid',
+    plate: 'L 6789 FG',
+    type: 'MPV Keluarga',
+    status: 'Bergerak • 65 km/h',
+    statusVariant: 'info',
+    isMoving: true,
+    driver: 'Bpk. Bambang (Driver)',
+    location: 'Tol Waru - Juanda KM 12, Sidoarjo',
+    speed: '65 km/h',
+    fuel: '85% Tangki',
+    updated: '2 menit yang lalu',
+    coords: { lat: -7.3524, lng: 112.7291 },
+    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=600&q=80',
+    vehicleDetailId: 'k-ertiga',
+  },
+  {
+    id: 'innova',
+    name: 'Toyota Innova Zenix',
+    plate: 'L 1122 ZZ',
+    type: 'Premium MPV',
+    status: 'Parkir Standby',
+    statusVariant: 'neutral',
+    isMoving: false,
+    driver: 'Standby Unit VIP',
+    location: 'Pool Gubeng Surabaya, Jl. Gubeng Masjid No. 1',
+    speed: '0 km/h',
+    fuel: '90% Tangki',
+    updated: 'Baru saja',
+    coords: { lat: -7.2655, lng: 112.7521 },
+    image: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=600&q=80',
+    vehicleDetailId: 'k-innova',
+  },
+  {
+    id: 'avanza',
+    name: 'Toyota Avanza 1.3 G',
+    plate: 'L 1234 AB',
+    type: 'MPV 7-Seater',
+    status: 'Garasi Utama',
+    statusVariant: 'success',
+    isMoving: false,
+    driver: 'Standby Garasi Barat',
+    location: 'Pool Barat Surabaya, Jl. Mayjen HR. Muhammad No. 45',
+    speed: '0 km/h',
+    fuel: '100% Tangki',
+    updated: '5 menit yang lalu',
+    coords: { lat: -7.2861, lng: 112.6934 },
+    image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80',
+    vehicleDetailId: 'k-avanza',
+  },
+  {
+    id: 'xpander',
+    name: 'Mitsubishi Xpander Ultimate',
+    plate: 'W 3456 CD',
+    type: 'Crossover MPV',
+    status: 'Bergerak • 20 km/h',
+    statusVariant: 'info',
+    isMoving: true,
+    driver: 'Hendra K. (Jemput Tamu)',
+    location: 'Terminal 1 Bandara Internasional Juanda, Sidoarjo',
+    speed: '20 km/h',
+    fuel: '75% Tangki',
+    updated: '3 menit yang lalu',
+    coords: { lat: -7.3798, lng: 112.7876 },
+    image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80',
+    vehicleDetailId: 'k-xpander',
+  },
+  {
+    id: 'calya',
+    name: 'Toyota Calya 1.2 G',
+    plate: 'L 4567 DE',
+    type: 'Eco MPV',
+    status: 'Garasi Rungkut',
+    statusVariant: 'neutral',
+    isMoving: false,
+    driver: 'Standby Pool Rungkut',
+    location: 'Pool Rungkut Industri, Jl. Rungkut Industri III No. 12',
+    speed: '0 km/h',
+    fuel: '80% Tangki',
+    updated: '8 menit yang lalu',
+    coords: { lat: -7.3278, lng: 112.7663 },
+    image: 'https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&w=600&q=80',
+    vehicleDetailId: 'k-calya',
+  },
+]
 
 export default function Lokasi() {
   const [locationFilter, setLocationFilter] = useState('all') // 'all' | 'moving' | 'parked'
   const [searchQuery, setSearchQuery] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
-  const [selectedPin, setSelectedPin] = useState('brio') // 'brio' | 'ertiga' | 'innova' | 'garage'
+  const [selectedPin, setSelectedPin] = useState('brio')
 
-  const vehicles = [
-    {
-      id: 'brio',
-      name: 'Honda Brio Satya E',
-      plate: 'L 2345 BC',
-      type: 'Compact City',
-      status: 'Bergerak • 35 km/h',
-      statusVariant: 'success',
-      isMoving: true,
-      driver: 'Ahmad Faisal (Penyewa)',
-      location: 'Jl. Raya Darmo No. 82, Surabaya Pusat',
-      speed: '35 km/h',
-      fuel: '65% Tangki',
-      updated: '1 menit yang lalu',
-      pinPos: { left: '38%', top: '44%' },
-    },
-    {
-      id: 'ertiga',
-      name: 'Suzuki Ertiga Hybrid',
-      plate: 'L 6789 FG',
-      type: 'MPV Keluarga',
-      status: 'Bergerak • 65 km/h',
-      statusVariant: 'info',
-      isMoving: true,
-      driver: 'Bpk. Bambang (Driver)',
-      location: 'Tol Waru - Juanda KM 12, Sidoarjo',
-      speed: '65 km/h',
-      fuel: '85% Tangki',
-      updated: '2 menit yang lalu',
-      pinPos: { left: '26%', top: '24%' },
-    },
-    {
-      id: 'innova',
-      name: 'Toyota Innova Zenix',
-      plate: 'L 1122 ZZ',
-      type: 'Premium MPV',
-      status: 'Parkir Standby',
-      statusVariant: 'neutral',
-      isMoving: false,
-      driver: 'Standby Unit',
-      location: 'Pool Gubeng Surabaya',
-      speed: '0 km/h',
-      fuel: '90% Tangki',
-      updated: 'Baru saja',
-      pinPos: { left: '72%', top: '68%' },
-    },
-    {
-      id: 'avanza',
-      name: 'Toyota Avanza 1.3 G',
-      plate: 'L 1234 AB',
-      type: 'MPV 7-Seater',
-      status: 'Garasi Utama',
-      statusVariant: 'success',
-      isMoving: false,
-      driver: 'Standby Garasi',
-      location: 'Pool Barat Surabaya',
-      speed: '0 km/h',
-      fuel: '100% Tangki',
-      updated: '5 menit yang lalu',
-      pinPos: { left: '46%', top: '58%' },
-    },
-  ]
+  const vehicles = defaultVehicles
 
-  const filteredVehicles = vehicles.filter((v) => {
-    const matchesFilter =
-      locationFilter === 'all' ||
-      (locationFilter === 'moving' && v.isMoving) ||
-      (locationFilter === 'parked' && !v.isMoving)
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((v) => {
+      const matchesFilter =
+        locationFilter === 'all' ||
+        (locationFilter === 'moving' && v.isMoving) ||
+        (locationFilter === 'parked' && !v.isMoving)
 
-    const q = searchQuery.toLowerCase().trim()
-    const matchesSearch =
-      v.name.toLowerCase().includes(q) ||
-      v.plate.toLowerCase().includes(q) ||
-      v.location.toLowerCase().includes(q)
+      const q = searchQuery.toLowerCase().trim()
+      const matchesSearch =
+        !q ||
+        v.name.toLowerCase().includes(q) ||
+        v.plate.toLowerCase().includes(q) ||
+        v.location.toLowerCase().includes(q) ||
+        v.driver.toLowerCase().includes(q)
 
-    return matchesFilter && matchesSearch
-  })
+      return matchesFilter && matchesSearch
+    })
+  }, [vehicles, locationFilter, searchQuery])
 
-  const activeVehicle = vehicles.find((v) => v.id === selectedPin) || vehicles[0]
+  const activeVehicle = useMemo(() => {
+    return vehicles.find((v) => v.id === selectedPin) || vehicles[0]
+  }, [vehicles, selectedPin])
 
   const handleRefresh = () => {
     setIsUpdating(true)
-    setTimeout(() => setIsUpdating(false), 800)
+    setTimeout(() => setIsUpdating(false), 700)
   }
+
+  const movingCount = vehicles.filter((v) => v.isMoving).length
+  const parkedCount = vehicles.filter((v) => !v.isMoving).length
 
   return (
     <div className="flex min-h-screen w-full flex-col items-start bg-[#F5F7FA]">
@@ -112,7 +167,7 @@ export default function Lokasi() {
           <div className="flex flex-col items-start gap-1">
             <div className="flex items-center gap-1.5 text-xs text-[#47607E]">
               <span className="font-plusJakartaSans font-bold uppercase tracking-wider text-[#0F766E]">
-                Telematika GPS Terpadu
+                Integrasi Telematika GPS &amp; Google Maps
               </span>
               <span className="text-[#94A3B8]">•</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 font-semibold text-[#15803D]">
@@ -124,7 +179,7 @@ export default function Lokasi() {
               Lokasi Armada &amp; Pelacakan Real-Time
             </h2>
             <p className="max-w-2xl font-plusJakartaSans text-xs text-[#47607E] sm:text-sm">
-              Pelacakan GPS aktif dan riwayat posisi armada rental untuk memastikan keamanan kendaraan serta ketepatan rute.
+              Pelacakan posisi kendaraan sewa via Google Maps secara akurat untuk memantau keamanan armada dan estimasi rute perjalanan.
             </p>
           </div>
 
@@ -140,7 +195,7 @@ export default function Lokasi() {
                     : 'text-[#47607E] hover:text-[#0F766E]'
                 }`}
               >
-                Semua Kendaraan (12)
+                Semua Kendaraan ({vehicles.length})
               </button>
               <button
                 type="button"
@@ -151,7 +206,7 @@ export default function Lokasi() {
                     : 'text-[#47607E] hover:text-[#0F766E]'
                 }`}
               >
-                Aktif Bergerak (3)
+                Aktif Bergerak ({movingCount})
               </button>
               <button
                 type="button"
@@ -162,7 +217,7 @@ export default function Lokasi() {
                     : 'text-[#47607E] hover:text-[#0F766E]'
                 }`}
               >
-                Parkir di Garasi (7)
+                Parkir di Garasi ({parkedCount})
               </button>
             </div>
 
@@ -185,113 +240,24 @@ export default function Lokasi() {
               >
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
               </svg>
-              <span>{isUpdating ? 'Memperbarui...' : 'Perbarui Lokasi'}</span>
+              <span>{isUpdating ? 'Sinkronisasi...' : 'Perbarui GPS'}</span>
             </button>
           </div>
         </div>
 
-        {/* Main Grid: Map on Left, Vehicle List on Right */}
+        {/* Main Grid: Real Google Maps on Left, Fleet Telematics List on Right */}
         <div className="grid w-full grid-cols-1 items-start gap-6 xl:grid-cols-[1.4fr_1fr]">
-          {/* Left Column: Interactive Map View & Telematics Stat Cards */}
+          {/* Left Column: Interactive Google Maps Component & Telematics Stat Cards */}
           <div className="flex flex-col gap-6">
-            {/* Map Container */}
-            <div className="relative h-[480px] w-full overflow-hidden rounded-2xl border border-[#DDEAF2] bg-[#D7E4EC] shadow-xs sm:h-[540px]">
-              {/* Map background image with fallback */}
-              <img
-                src="/Image.png"
-                alt="Peta Lokasi Armada Surabaya"
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src =
-                    'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 540"%3E%3Crect width="640" height="540" fill="%23D7E4EC"/%3E%3Cpath d="M0 120 L640 400 M0 380 L640 180" stroke="%23fff" stroke-width="28"/%3E%3C/svg%3E'
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/40 via-transparent to-[#0F172A]/10 pointer-events-none" />
-
-              {/* Map Top Bar Controls */}
-              <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 rounded-full border border-white/80 bg-white/90 px-3.5 py-1.5 shadow-sm backdrop-blur-xs">
-                  <span className="h-2 w-2 rounded-full bg-[#0F766E]" />
-                  <span className="font-plusJakartaSans text-xs font-semibold text-[#111D23]">
-                    Surabaya &amp; Sekitarnya
-                  </span>
-                  <span className="text-[11px] text-[#47607E]">• Akurasi GPS ±3m</span>
-                </div>
-
-                <div className="flex items-center gap-1 rounded-lg border border-white/80 bg-white/90 p-1 shadow-sm backdrop-blur-xs">
-                  <button type="button" aria-label="Perbesar peta" className="flex h-7 w-7 items-center justify-center rounded font-bold text-[#47607E] hover:bg-[#E9F6FD]">
-                    +
-                  </button>
-                  <button type="button" aria-label="Perkecil peta" className="flex h-7 w-7 items-center justify-center rounded font-bold text-[#47607E] hover:bg-[#E9F6FD]">
-                    &minus;
-                  </button>
-                </div>
-              </div>
-
-              {/* Vehicle Pins on the Map */}
-              {vehicles.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => setSelectedPin(v.id)}
-                  style={{ left: v.pinPos.left, top: v.pinPos.top }}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-full p-1.5 shadow-md transition-all ${
-                    selectedPin === v.id
-                      ? 'scale-110 bg-[#0F766E] text-white ring-4 ring-[#0F766E]/30 z-20'
-                      : 'bg-[#17324D] text-white hover:scale-105 z-10'
-                  }`}
-                >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-xs">
-                    🚗
-                  </span>
-                  <span className="pr-2 font-plusJakartaSans text-[11px] font-bold whitespace-nowrap">
-                    {v.plate}
-                  </span>
-                </button>
-              ))}
-
-              {/* Selected Pin Details Popup Floating in Map */}
-              <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:w-80 rounded-xl border border-white/80 bg-white/95 p-4 shadow-lg backdrop-blur-md">
-                <div className="flex items-center justify-between border-b border-[#E3F0F8] pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-plusJakartaSans text-xs font-bold text-[#111D23]">
-                      {activeVehicle.name}
-                    </span>
-                    <span className="font-liberationMono text-[11px] font-semibold text-[#0F766E]">
-                      {activeVehicle.plate}
-                    </span>
-                  </div>
-                  <StatusBadge status={activeVehicle.status} variant={activeVehicle.statusVariant} size="sm" />
-                </div>
-
-                <div className="mt-2.5 flex flex-col gap-1 text-xs">
-                  <div className="flex items-center justify-between text-[#47607E]">
-                    <span>Penyewa / Driver:</span>
-                    <span className="font-semibold text-[#111D23]">{activeVehicle.driver}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[#47607E]">
-                    <span>Kecepatan:</span>
-                    <span className="font-semibold text-[#0F766E]">{activeVehicle.speed}</span>
-                  </div>
-                  <div className="flex items-start justify-between text-[#47607E]">
-                    <span>Posisi:</span>
-                    <span className="text-right font-medium text-[#111D23] max-w-[170px] truncate">
-                      {activeVehicle.location}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between border-t border-[#E3F0F8] pt-2 text-[11px] text-[#64748B]">
-                  <span>{activeVehicle.updated}</span>
-                  <span className="font-semibold text-[#0F766E]">{activeVehicle.fuel}</span>
-                </div>
-              </div>
-            </div>
+            {/* Google Maps Container Component */}
+            <GoogleMapsView
+              selectedVehicle={activeVehicle}
+            />
 
             {/* 3 Telematics Stat Cards */}
             <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="flex items-center gap-3.5 rounded-xl border border-[#DDEAF2] bg-white p-4 shadow-xs">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#E9F6FD] text-[#0F766E]">
+              <div className="flex items-center gap-3.5 rounded-2xl border border-[#DDEAF2] bg-white p-4 shadow-xs">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E9F6FD] text-[#0F766E]">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 14 14" />
@@ -307,8 +273,8 @@ export default function Lokasi() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3.5 rounded-xl border border-[#DDEAF2] bg-white p-4 shadow-xs">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#E9F6FD] text-[#0F766E]">
+              <div className="flex items-center gap-3.5 rounded-2xl border border-[#DDEAF2] bg-white p-4 shadow-xs">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E9F6FD] text-[#0F766E]">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M3 2v6h6" />
                     <path d="M3 13a9 9 0 1 0 3-7.7L3 8" />
@@ -316,7 +282,7 @@ export default function Lokasi() {
                 </div>
                 <div>
                   <p className="font-plusJakartaSans text-[11px] font-bold uppercase tracking-wider text-[#47607E]">
-                    Bahan Bakar Rata-Rata
+                    Bahan Bakar Armada
                   </p>
                   <p className="font-plusJakartaSans text-xl font-bold text-[#111D23]">
                     78% <span className="text-xs font-semibold text-[#15803D]">Optimal</span>
@@ -324,8 +290,8 @@ export default function Lokasi() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3.5 rounded-xl border border-[#DDEAF2] bg-white p-4 shadow-xs">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
+              <div className="flex items-center gap-3.5 rounded-2xl border border-[#DDEAF2] bg-white p-4 shadow-xs">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#DCFCE7] text-[#15803D]">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
@@ -342,59 +308,81 @@ export default function Lokasi() {
             </div>
           </div>
 
-          {/* Right Column: Fleet List */}
-          <div className="flex flex-col gap-4 rounded-xl border border-[#DDEAF2] bg-white p-5 shadow-xs">
+          {/* Right Column: Fleet List (Interactive - Click centers map) */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-[#DDEAF2] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between border-b border-[#E3F0F8] pb-3">
               <div>
                 <h3 className="font-plusJakartaSans text-base font-bold text-[#111D23]">
                   Daftar Armada Terkini
                 </h3>
                 <p className="font-plusJakartaSans text-xs text-[#47607E]">
-                  Menampilkan {filteredVehicles.length} armada dalam jangkauan radar GPS
+                  Pilih kendaraan untuk mengarahkan Google Maps ke lokasinya
                 </p>
               </div>
               <span className="font-plusJakartaSans text-[11px] font-medium text-[#64748B]">
-                Urut: Waktu Terkini
+                {filteredVehicles.length} Unit
               </span>
             </div>
 
             <div className="flex flex-col gap-3">
-              {filteredVehicles.map((v) => (
-                <div
-                  key={v.id}
-                  onClick={() => setSelectedPin(v.id)}
-                  className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-4 transition-all ${
-                    selectedPin === v.id
-                      ? 'border-[#0F766E] bg-[#F0FBF9] shadow-xs'
-                      : 'border-[#DDEAF2] bg-white hover:border-[#CBD5E1] hover:bg-[#F8FAFC]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-plusJakartaSans text-sm font-bold text-[#111D23]">
-                        {v.name}
-                      </span>
-                      <span className="rounded bg-[#DDEAF2] px-2 py-0.5 font-liberationMono text-[11px] font-semibold text-[#17324D]">
-                        {v.plate}
-                      </span>
+              {filteredVehicles.map((v) => {
+                const isSelected = selectedPin === v.id
+                return (
+                  <div
+                    key={v.id}
+                    onClick={() => setSelectedPin(v.id)}
+                    className={`flex cursor-pointer flex-col gap-2.5 rounded-xl border p-3.5 transition-all ${
+                      isSelected
+                        ? 'border-[#0F766E] bg-[#F0FBF9] ring-2 ring-[#0F766E] shadow-sm'
+                        : 'border-[#DDEAF2] bg-white hover:border-[#CBD5E1] hover:bg-[#F8FAFC]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={v.image}
+                          alt={v.name}
+                          className="h-9 w-11 rounded-lg border border-[#DDEAF2] object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23E9F6FD"/></svg>`
+                          }}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-plusJakartaSans text-sm font-bold text-[#111D23]">
+                            {v.name}
+                          </span>
+                          <span className="font-liberationMono text-[11px] font-semibold text-[#0F766E]">
+                            {v.plate}
+                          </span>
+                        </div>
+                      </div>
+                      <StatusBadge status={v.status} variant={v.statusVariant} size="sm" />
                     </div>
-                    <StatusBadge status={v.status} variant={v.statusVariant} size="sm" />
-                  </div>
 
-                  <div className="flex items-center gap-2 text-xs text-[#47607E]">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <span className="truncate">{v.location}</span>
-                  </div>
+                    <div className="flex items-center gap-1.5 text-xs text-[#47607E]">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[#0F766E]" aria-hidden="true">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span className="truncate">{v.location}</span>
+                    </div>
 
-                  <div className="flex items-center justify-between border-t border-[#E3F0F8]/60 pt-2 text-[11px] text-[#64748B]">
-                    <span>Driver: {v.driver}</span>
-                    <span className="font-semibold text-[#0F766E]">{v.fuel}</span>
+                    <div className="flex items-center justify-between border-t border-[#E3F0F8]/80 pt-2 text-[11px] text-[#64748B]">
+                      <span>{v.driver}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-[#0F766E]">{v.fuel}</span>
+                        <Link
+                          to={`/kendaraan/detail?id=${v.vehicleDetailId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-[#0F766E] hover:underline font-semibold"
+                        >
+                          Detail &rarr;
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
+<<<<<<< HEAD
+=======
+import { vehiclesData } from '../data/vehicles'
+>>>>>>> feature/frontend-brand-update
 import {
   createVehicle,
   fetchVehicles,
@@ -11,6 +15,33 @@ import {
 
 const DEFAULT_FALLBACK_IMAGE =
   '/Ab6axua7enflctrgawzxbuaxw0vvkga8l5ontrgzgjdvwbsjdgrahbmateoa2kjg_tqafywm4gthvmwr9uislxzo3obancdzvtkywbhzlbku9bx1itb91dtst0c0lwlhzygcbhu0raeac8qxpb1biaarqokmfdgs64rfup0azjbrngwrwnvsydqr9normwepupyn9ikntq3hv_p4og1u0tiap7gloxe0gi1hxasrubwyy3zahbczsq.png'
+<<<<<<< HEAD
+=======
+
+
+// Data contoh dari frontend tetap dipertahankan sebagai fallback saat backend tidak dapat diakses.
+// Data ini tidak menggantikan data live ketika API berhasil dimuat.
+const mapSampleVehicle = (vehicle) => ({
+  ...vehicle,
+  vehicle_id: vehicle.id,
+  merk: vehicle.name?.split(' ')[0] || vehicle.name || 'Kendaraan',
+  tipe: vehicle.name?.split(' ').slice(1).join(' ') || '',
+  plat_nomor: vehicle.plate || '-',
+  tahun: Number(String(vehicle.year || '').replace(/\\D/g, '')) || null,
+  status:
+    vehicle.status === 'Tersedia'
+      ? 'Available'
+      : vehicle.status === 'Disewa'
+        ? 'Rented'
+        : 'In Maintenance',
+  tarif_per_hari: vehicle.tarif_per_hari || 0,
+  warna: vehicle.warna || '',
+  deskripsi: vehicle.infoBoxDesc || vehicle.deskripsi || '',
+  vehicle_photos: vehicle.images?.[0]?.url
+    ? [{ photo_url: vehicle.images[0].url }]
+    : [],
+})
+>>>>>>> feature/frontend-brand-update
 
 export default function Kendaraan() {
   const [vehicles, setVehicles] = useState([])
@@ -50,6 +81,11 @@ export default function Kendaraan() {
     } catch (err) {
       console.error('Error fetching vehicles:', err)
       setApiError(err.message || 'Gagal memuat data kendaraan dari backend.')
+<<<<<<< HEAD
+=======
+      // Fallback frontend dipakai hanya ketika request backend gagal.
+      setVehicles(vehiclesData.map(mapSampleVehicle))
+>>>>>>> feature/frontend-brand-update
     } finally {
       setIsLoading(false)
     }
@@ -99,10 +135,17 @@ export default function Kendaraan() {
       const q = searchQuery.trim().toLowerCase()
       const matchesSearch =
         !q ||
+<<<<<<< HEAD
         (v.merk && v.merk.toLowerCase().includes(q)) ||
         (v.tipe && v.tipe.toLowerCase().includes(q)) ||
         (v.plat_nomor && v.plat_nomor.toLowerCase().includes(q)) ||
         (v.deskripsi && v.deskripsi.toLowerCase().includes(q))
+=======
+        String(v.merk || '').toLowerCase().includes(q) ||
+        String(v.tipe || '').toLowerCase().includes(q) ||
+        String(v.plat_nomor || '').toLowerCase().includes(q) ||
+        String(v.deskripsi || '').toLowerCase().includes(q)
+>>>>>>> feature/frontend-brand-update
 
       return matchesStatus && matchesSearch
     })
@@ -226,10 +269,17 @@ export default function Kendaraan() {
       year: 'numeric',
     }).format(new Date())
   }, [])
+<<<<<<< HEAD
+=======
+
+  const countSemua = vehicles.length
+  const countTersedia = vehicles.filter((v) => v.status === 'Tersedia').length
+  const countDisewa = vehicles.filter((v) => v.status === 'Disewa').length
+  const countMaintenance = vehicles.filter((v) => v.status === 'Maintenance').length
+>>>>>>> feature/frontend-brand-update
 
   return (
     <div className="flex min-h-screen w-full flex-col items-start bg-[#F5F7FA]">
-      {/* Top Header Terpadu */}
       <Header
         searchQuery={searchQuery}
         setSearchQuery={handleSearchChange}
@@ -245,28 +295,23 @@ export default function Kendaraan() {
         onRefresh={loadVehicles}
       />
 
-      {/* Main Content */}
       <div className="mx-auto flex w-full max-w-[1600px] flex-col items-start gap-6 p-4 sm:p-6 lg:gap-8 lg:p-8">
-        {/* Banner Subheader & Statistik Cepat */}
-        <div className="flex w-full flex-col items-start justify-between gap-4 md:flex-row md:items-end">
-          <div className="flex flex-col items-start">
-            <div className="flex items-center gap-1.5">
-              <svg
-                width="14"
-                height="12"
-                viewBox="0 0 14 12"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0 text-[#005C55]"
-              >
-                <path
-                  d="M2.25 10.5V11.25C2.25 11.4625 2.17812 11.6406 2.03437 11.7844C1.89062 11.9281 1.7125 12 1.5 12H0.75C0.5375 12 0.359375 11.9281 0.215625 11.7844C0.071875 11.6406 0 11.4625 0 11.25V5.25L1.575 0.75C1.65 0.525 1.78437 0.34375 1.97812 0.20625C2.17188 0.06875 2.3875 0 2.625 0H10.875C11.1125 0 11.3281 0.06875 11.5219 0.20625C11.7156 0.34375 11.85 0.525 11.925 0.75L13.5 5.25V11.25C13.5 11.4625 13.4281 11.6406 13.2844 11.7844C13.1406 11.9281 12.9625 12 12.75 12H12C11.7875 12 11.6094 11.9281 11.4656 11.7844C11.3219 11.6406 11.25 11.4625 11.25 11.25V10.5H2.25V10.5M2.1 3.75H11.4L10.6125 1.5H2.8875L2.1 3.75V3.75M1.5 5.25V5.25V9V9V5.25V5.25M3.375 8.25C3.6875 8.25 3.95312 8.14062 4.17188 7.92188C4.39062 7.70312 4.5 7.4375 4.5 7.125C4.5 6.8125 4.39062 6.54688 4.17188 6.32812C3.95312 6.10938 3.6875 6 3.375 6C3.0625 6 2.79688 6.10938 2.57812 6.32812C2.35938 6.54688 2.25 6.8125 2.25 7.125C2.25 7.4375 2.35938 7.70312 2.57812 7.92188C2.79688 8.14062 3.0625 8.25 3.375 8.25V8.25M10.125 8.25C10.4375 8.25 10.7031 8.14062 10.9219 7.92188C11.1406 7.70312 11.25 7.4375 11.25 7.125C11.25 6.8125 11.1406 6.54688 10.9219 6.32812C10.7031 6.10938 10.4375 6 10.125 6C9.8125 6 9.54688 6.10938 9.32812 6.32812C9.10938 6.54688 9 6.8125 9 7.125C9 7.4375 9.10938 7.70312 9.32812 7.92188C9.54688 8.14062 9.8125 8.25 10.125 8.25V8.25M1.5 9H12V5.25H1.5V9V9"
-                  fill="currentColor"
-                />
-              </svg>
-              <p className="font-plusJakartaSans text-[11px] font-semibold tracking-wider text-[#005C55]">
-                KATALOG INVENTARIS UNIT
-              </p>
+        {/* Subheader & Breadcrumbs */}
+        <div className="flex w-full flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
+          <div className="flex flex-col items-start gap-1">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#47607E]">
+              <span className="font-plusJakartaSans font-medium">Operasional Rental</span>
+              <span className="text-[#94A3B8]">/</span>
+              <span className="font-plusJakartaSans font-semibold text-[#0F766E]">Kendaraan</span>
+            </nav>
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <h2 className="font-plusJakartaSans text-2xl font-bold tracking-tight text-[#111D23] sm:text-[26px]">
+                Daftar Armada Rental
+              </h2>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E3F0F8] px-2.5 py-0.5 font-plusJakartaSans text-[11px] font-semibold text-[#0F766E]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#0F766E] animate-pulse" />
+                {countSemua} Unit Terdaftar
+              </span>
             </div>
             <h2 className="mt-1 font-plusJakartaSans text-2xl font-bold tracking-tight text-[#111D23] sm:text-[26px]">
               Kendaraan
@@ -350,7 +395,7 @@ export default function Kendaraan() {
               placeholder="Cari kendaraan, nomor polisi, atau model..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full rounded-lg border border-[#DDEAF2] bg-[#E9F6FD] py-2 pl-10 pr-3 font-plusJakartaSans text-xs text-[#263238] transition-colors outline-none placeholder:text-[#47607E] focus:border-[#0F766E] focus:bg-white focus:ring-1 focus:ring-[#0F766E] sm:text-[13px]"
+              className="w-full rounded-lg border border-[#DDEAF2] bg-[#E9F6FD] py-2 pl-9 pr-3 font-plusJakartaSans text-xs text-[#263238] transition-colors outline-none placeholder:text-[#47607E] focus:border-[#0F766E] focus:bg-white focus:ring-1 focus:ring-[#0F766E] sm:text-[13px]"
             />
           </div>
 
@@ -360,11 +405,10 @@ export default function Kendaraan() {
               type="button"
               aria-pressed={activeStatus === 'Semua'}
               onClick={() => handleStatusChange('Semua')}
-              className={`cursor-pointer rounded-full px-3.5 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${
-                activeStatus === 'Semua'
+              className={`cursor-pointer rounded-full px-3.5 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeStatus === 'Semua'
                   ? 'bg-[#0F766E] text-white shadow-xs'
                   : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
-              }`}
+                }`}
             >
               Semua ({totalArmada})
             </button>
@@ -372,11 +416,10 @@ export default function Kendaraan() {
               type="button"
               aria-pressed={activeStatus === 'Tersedia'}
               onClick={() => handleStatusChange('Tersedia')}
-              className={`cursor-pointer rounded-full px-3.5 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${
-                activeStatus === 'Tersedia'
+              className={`cursor-pointer rounded-full px-3.5 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeStatus === 'Tersedia'
                   ? 'bg-[#0F766E] text-white shadow-xs'
                   : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
-              }`}
+                }`}
             >
               Tersedia ({totalAvailable})
             </button>
@@ -384,11 +427,10 @@ export default function Kendaraan() {
               type="button"
               aria-pressed={activeStatus === 'Disewa'}
               onClick={() => handleStatusChange('Disewa')}
-              className={`cursor-pointer rounded-full px-3.5 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${
-                activeStatus === 'Disewa'
+              className={`cursor-pointer rounded-full px-3.5 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeStatus === 'Disewa'
                   ? 'bg-[#0F766E] text-white shadow-xs'
                   : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
-              }`}
+                }`}
             >
               Disewa ({totalRented})
             </button>
@@ -396,11 +438,10 @@ export default function Kendaraan() {
               type="button"
               aria-pressed={activeStatus === 'Maintenance'}
               onClick={() => handleStatusChange('Maintenance')}
-              className={`cursor-pointer rounded-full px-3.5 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${
-                activeStatus === 'Maintenance'
+              className={`cursor-pointer rounded-full px-3.5 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeStatus === 'Maintenance'
                   ? 'bg-[#0F766E] text-white shadow-xs'
                   : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
-              }`}
+                }`}
             >
               Maintenance ({totalMaintenance})
             </button>
@@ -481,19 +522,33 @@ export default function Kendaraan() {
                 const statusType = isAvailable
                   ? 'success'
                   : isRented
-                  ? 'info'
-                  : 'warning'
+<<<<<<< HEAD
+                    ? 'info'
+                    : 'warning'
                 const statusLabel = isAvailable
                   ? 'Tersedia'
                   : isRented
-                  ? 'Sedang Disewa'
-                  : 'Perlu Servis'
+                    ? 'Sedang Disewa'
+                    : 'Perlu Servis'
+=======
+                    ? 'info'
+                    : 'warning'
+                const statusLabel = isAvailable
+                  ? 'Tersedia'
+                  : isRented
+                    ? 'Sedang Disewa'
+                    : 'Perlu Servis'
+>>>>>>> feature/frontend-brand-update
 
                 const vehicleName = `${vehicle.merk} ${vehicle.tipe}`
 
                 return (
                   <div
+<<<<<<< HEAD
                     key={vehicle.vehicle_id}
+=======
+                    key={vehicle.vehicle_id ?? vehicle.id}
+>>>>>>> feature/frontend-brand-update
                     className="flex flex-col justify-between overflow-hidden rounded-xl border border-[#E3F0F8] bg-white shadow-xs transition-shadow hover:shadow-md"
                   >
                     {/* Gambar Unit & Badges */}
@@ -551,8 +606,11 @@ export default function Kendaraan() {
                         <div className="flex items-start gap-2 rounded-lg bg-[#E9F6FD] p-2.5">
                           <p className="line-clamp-2 font-plusJakartaSans text-[12px] leading-snug text-[#3E4947]">
                             {vehicle.deskripsi ||
-                              `Kondisi prima siap operasional. STNK: ${
-                                vehicle.nomor_stnk || 'Aktif'
+<<<<<<< HEAD
+                              `Kondisi prima siap operasional. STNK: ${vehicle.nomor_stnk || 'Aktif'
+=======
+                              `Kondisi prima siap operasional. STNK: ${vehicle.nomor_stnk || 'Aktif'
+>>>>>>> feature/frontend-brand-update
                               }.`}
                           </p>
                         </div>
@@ -639,11 +697,17 @@ export default function Kendaraan() {
                   aria-current={activePage === page ? 'page' : undefined}
                   aria-label={`Halaman ${page}`}
                   onClick={() => setActivePage(page)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${
-                    activePage === page
+<<<<<<< HEAD
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activePage === page
                       ? 'bg-[#0F766E] text-white'
                       : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
-                  }`}
+                    }`}
+=======
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activePage === page
+                      ? 'bg-[#0F766E] text-white'
+                      : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
+                    }`}
+>>>>>>> feature/frontend-brand-update
                 >
                   {page}
                 </button>
@@ -703,11 +767,17 @@ export default function Kendaraan() {
 
             {modalFeedback.message && (
               <div
-                className={`mt-4 rounded-lg p-3 text-xs font-semibold ${
-                  modalFeedback.type === 'success'
+<<<<<<< HEAD
+                className={`mt-4 rounded-lg p-3 text-xs font-semibold ${modalFeedback.type === 'success'
                     ? 'border border-[#BFE8E2] bg-[#F0FBF9] text-[#0F625C]'
                     : 'border border-[#FECDD3] bg-[#FFF1F2] text-[#BA1A1A]'
-                }`}
+                  }`}
+=======
+                className={`mt-4 rounded-lg p-3 text-xs font-semibold ${modalFeedback.type === 'success'
+                    ? 'border border-[#BFE8E2] bg-[#F0FBF9] text-[#0F625C]'
+                    : 'border border-[#FECDD3] bg-[#FFF1F2] text-[#BA1A1A]'
+                  }`}
+>>>>>>> feature/frontend-brand-update
               >
                 {modalFeedback.message}
               </div>
