@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
+import { fetchVehicles } from '../services/vehicleApi'
 
 const API_BASE = import.meta.env.VITE_API_BASE
+const DEFAULT_FALLBACK_IMAGE =
+  '/Ab6axua7enflctrgawzxbuaxw0vvkga8l5ontrgzgjdvwbsjdgrahbmateoa2kjg_tqafywm4gthvmwr9uislxzo3obancdzvtkywbhzlbku9bx1itb91dtst0c0lwlhzygcbhu0raeac8qxpb1biaarqokmfdgs64rfup0azjbrngwrwnvsydqr9normwepupyn9ikntq3hv_p4og1u0tiap7gloxe0gi1hxasrubwyy3zahbczsq.png'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -22,6 +25,11 @@ export default function Dashboard() {
   const [userList, setUserList] = useState([])
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [userError, setUserError] = useState('')
+
+  // State Kendaraan dari Backend API (/vehicle)
+  const [vehicles, setVehicles] = useState([])
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true)
+  const [vehicleError, setVehicleError] = useState('')
 
   const fetchUserData = useCallback(async () => {
     setIsLoadingUser(true)
@@ -91,9 +99,33 @@ export default function Dashboard() {
     }
   }, [navigate])
 
+  const loadVehicles = useCallback(async () => {
+    setIsLoadingVehicles(true)
+    setVehicleError('')
+    try {
+      const res = await fetchVehicles({ limit: 100, offset: 0 })
+      if (res && Array.isArray(res.data)) {
+        setVehicles(res.data)
+      } else {
+        setVehicles([])
+      }
+    } catch (err) {
+      console.error('Error fetching vehicles on dashboard:', err)
+      setVehicleError(err.message || 'Gagal memuat armada dari backend.')
+    } finally {
+      setIsLoadingVehicles(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchUserData()
-  }, [fetchUserData])
+    loadVehicles()
+  }, [fetchUserData, loadVehicles])
+
+  const handleRefreshAll = useCallback(() => {
+    fetchUserData()
+    loadVehicles()
+  }, [fetchUserData, loadVehicles])
 
   const todayFormatted = useMemo(() => {
     return new Intl.DateTimeFormat('id-ID', {
@@ -105,7 +137,7 @@ export default function Dashboard() {
   }, [])
 
   // Vehicle data for "Kondisi Kendaraan"
-  const vehicles = [
+  const sampleVehicles = [
     {
       id: 'avanza-1',
       name: 'Toyota Avanza',
@@ -163,17 +195,55 @@ export default function Dashboard() {
     },
   ]
 
-  const filteredVehicles = vehicles.filter((v) => {
-    const matchesFilter =
-      activeVehicleStatus === 'all' || v.status === activeVehicleStatus
-    const q = searchQuery.trim().toLowerCase()
-    const matchesSearch =
-      !q ||
-      v.name.toLowerCase().includes(q) ||
-      v.plate.toLowerCase().includes(q) ||
-      v.variant.toLowerCase().includes(q)
-    return matchesFilter && matchesSearch
-  })
+  // Kalkulasi statistik armada dinamis dari database live
+  const totalKendaraan = vehicles.length
+  const totalTersedia = vehicles.filter(
+    (v) => v.status === 'Available' || v.status === 'Tersedia'
+  ).length
+  const totalDisewa = vehicles.filter(
+    (v) => v.status === 'Rented' || v.status === 'Disewa'
+  ).length
+  const totalMaintenance = vehicles.filter(
+    (v) => v.status === 'In Maintenance' || v.status === 'Maintenance'
+  ).length
+
+  const pctTersedia =
+    totalKendaraan > 0 ? ((totalTersedia / totalKendaraan) * 100).toFixed(1) : '0'
+  const pctDisewa =
+    totalKendaraan > 0 ? ((totalDisewa / totalKendaraan) * 100).toFixed(1) : '0'
+  const pctMaintenance =
+    totalKendaraan > 0 ? ((totalMaintenance / totalKendaraan) * 100).toFixed(1) : '0'
+
+  // Filter kendaraan untuk bagian "Kondisi Kendaraan"
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((v) => {
+      let matchesFilter = true
+      if (activeVehicleStatus === 'available') {
+        matchesFilter = v.status === 'Available' || v.status === 'Tersedia'
+      } else if (activeVehicleStatus === 'rented') {
+        matchesFilter = v.status === 'Rented' || v.status === 'Disewa'
+      } else if (activeVehicleStatus === 'maintenance') {
+        matchesFilter =
+          v.status === 'In Maintenance' || v.status === 'Maintenance'
+      }
+
+      const q = searchQuery.trim().toLowerCase()
+      const matchesSearch =
+        !q ||
+        (v.merk && v.merk.toLowerCase().includes(q)) ||
+        (v.tipe && v.tipe.toLowerCase().includes(q)) ||
+        (v.plat_nomor && v.plat_nomor.toLowerCase().includes(q)) ||
+        (v.deskripsi && v.deskripsi.toLowerCase().includes(q))
+      return matchesFilter && matchesSearch
+    })
+  }, [vehicles, activeVehicleStatus, searchQuery])
+
+  // Kendaraan dengan status Maintenance dari database
+  const maintenanceList = useMemo(() => {
+    return vehicles.filter(
+      (v) => v.status === 'In Maintenance' || v.status === 'Maintenance'
+    )
+  }, [vehicles])
 
   return (
     <div className="flex min-h-screen w-full flex-col items-start bg-[#F5F7FA]">
@@ -185,7 +255,7 @@ export default function Dashboard() {
         greeting={`Selamat Datang, ${currentUser?.username || 'Pengelola'}`}
         subtitle={`${todayFormatted} • Shift ${currentUser?.role || 'Staff'} Ops`}
         user={currentUser}
-        onRefresh={fetchUserData}
+        onRefresh={handleRefreshAll}
       />
 
       {/* Main Content */}
@@ -228,7 +298,9 @@ export default function Dashboard() {
 
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-2 rounded-lg bg-[#DDEAF2] px-3.5 py-2">
-              <span className={`h-2.5 w-2.5 rounded-full ${currentUser ? 'bg-[#15803D]' : 'bg-[#B45309]'}`}></span>
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${currentUser ? 'bg-[#15803D]' : 'bg-[#B45309]'}`}
+              ></span>
               <p className="font-plusJakartaSans text-xs font-semibold text-[#3E4947] sm:text-[13px]">
                 {currentUser ? `${currentUser.username} (${currentUser.role})` : 'Tamu'}
               </p>
@@ -241,8 +313,8 @@ export default function Dashboard() {
                 Panel Admin
               </Link>
             )}
-            <button
-              type="button"
+            <Link
+              to="/kendaraan"
               className="flex items-center gap-1.5 rounded-lg bg-[#0F766E] px-3.5 py-2 text-white shadow-xs transition-colors hover:bg-[#0D655E]"
             >
               <svg
@@ -253,18 +325,20 @@ export default function Dashboard() {
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M6 9L2.25 5.25L3.3 4.1625L5.25 6.1125V0H6.75V6.1125L8.7 4.1625L9.75 5.25L6 9V9M1.5 12C1.0875 12 0.734375 11.8531 0.440625 11.5594C0.146875 11.2656 0 10.9125 0 10.5V8.25H1.5V10.5V10.5V10.5H10.5V10.5V10.5V8.25H12V10.5C12 10.9125 11.8531 11.2656 11.5594 11.5594C11.2656 11.8531 10.9125 12 10.5 12H1.5V12"
-                  fill="white"
+                  d="M6 1v10M1 6h10"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
                 />
               </svg>
               <span className="font-plusJakartaSans text-xs font-semibold sm:text-[13px]">
-                Ekspor Laporan
+                Kelola Armada
               </span>
-            </button>
+            </Link>
           </div>
         </div>
 
-        {/* Notifikasi / Error State jika belum login atau token invalid */}
+        {/* Notifikasi / Error State */}
         {userError && (
           <div className="flex w-full items-center justify-between rounded-xl border border-[#FECDD3] bg-[#FFF1F2] p-4 text-xs font-medium text-[#BA1A1A]">
             <div className="flex items-center gap-2">
@@ -281,7 +355,20 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* 4 Kartu Metrik Utama */}
+        {vehicleError && (
+          <div className="flex w-full items-center justify-between rounded-xl border border-[#FEF3C7] bg-[#FFFBEB] p-4 text-xs font-medium text-[#B45309]">
+            <span>{vehicleError}</span>
+            <button
+              type="button"
+              onClick={loadVehicles}
+              className="font-bold underline hover:text-[#92400E] cursor-pointer"
+            >
+              Muat Ulang
+            </button>
+          </div>
+        )}
+
+        {/* 4 Kartu Metrik Utama (Data Realtime dari GET /vehicle) */}
         <div className="grid w-full grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {/* Card 1: Total Kendaraan */}
           <div className="flex flex-col justify-between rounded-xl border border-[#E3F0F8] bg-white p-5 shadow-xs transition-shadow hover:shadow-sm">
@@ -306,16 +393,16 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 flex items-baseline justify-between">
               <span className="font-plusJakartaSans text-3xl font-bold tracking-tight text-[#111D23]">
-                12
+                {isLoadingVehicles ? '...' : totalKendaraan}
               </span>
               <span className="rounded-full bg-[#DDEAF2] px-2.5 py-1 font-plusJakartaSans text-[11px] font-semibold text-[#47607E]">
-                100% Kapasitas
+                {totalKendaraan > 0 ? `${totalKendaraan} Unit` : '0 Unit'}
               </span>
             </div>
             <div className="mt-3.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E3F0F8]">
               <div
                 className="h-full rounded-full bg-[#47607E]"
-                style={{ width: '100%' }}
+                style={{ width: totalKendaraan > 0 ? '100%' : '0%' }}
               />
             </div>
           </div>
@@ -343,16 +430,16 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 flex items-baseline justify-between">
               <span className="font-plusJakartaSans text-3xl font-bold tracking-tight text-[#111D23]">
-                7
+                {isLoadingVehicles ? '...' : totalTersedia}
               </span>
               <span className="rounded-full bg-[#DCFCE7] px-2.5 py-1 font-plusJakartaSans text-[11px] font-semibold text-[#15803D]">
-                Siap Sewa
+                {pctTersedia}% Siap Sewa
               </span>
             </div>
             <div className="mt-3.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E3F0F8]">
               <div
                 className="h-full rounded-full bg-[#15803D]"
-                style={{ width: '58.3%' }}
+                style={{ width: `${pctTersedia}%` }}
               />
             </div>
           </div>
@@ -380,16 +467,16 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 flex items-baseline justify-between">
               <span className="font-plusJakartaSans text-3xl font-bold tracking-tight text-[#111D23]">
-                3
+                {isLoadingVehicles ? '...' : totalDisewa}
               </span>
               <span className="rounded-full bg-[#DBEAFE] px-2.5 py-1 font-plusJakartaSans text-[11px] font-semibold text-[#2563EB]">
-                On-Trip
+                {pctDisewa}% Disewa
               </span>
             </div>
             <div className="mt-3.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E3F0F8]">
               <div
                 className="h-full rounded-full bg-[#2563EB]"
-                style={{ width: '25%' }}
+                style={{ width: `${pctDisewa}%` }}
               />
             </div>
           </div>
@@ -409,7 +496,7 @@ export default function Dashboard() {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    d="M12.9708 16.225L7.425 10.6333C7.11944 10.7556 6.81007 10.8472 6.49687 10.9083C6.18368 10.9694 5.85139 11 5.5 11C3.97222 11 2.67361 10.4653 1.60417 9.39583C0.534722 8.32639 0 7.02778 0 5.5C0 4.95 0.0763889 4.42674 0.229167 3.93021C0.381944 3.43368 0.595833 2.96389 0.870833 2.52083L4.21667 5.86667L5.86667 4.21667L2.52083 0.870833C2.96389 0.595833 3.43368 0.381944 3.93021 0.229167C4.42674 0.0763889 4.95 0 5.5 0C7.02778 0 8.32639 0.534722 9.39583 1.60417C10.4653 2.67361 11 3.97222 11 5.5C11 5.85139 10.9694 6.18368 10.9083 6.49687C10.8472 6.81007 10.7556 7.11944 10.6333 7.425L16.225 12.9708C16.4083 13.1542 16.5 13.3757 16.5 13.6354C16.5 13.8951 16.4083 14.1167 16.225 14.3L14.3 16.225C14.1167 16.4083 13.8951 16.5 13.6354 16.5C13.3757 16.5 13.1542 16.4083 12.9708 16.225V16.225M13.6354 14.2771L14.2542 13.6583L8.3875 7.79167C8.6625 7.48611 8.86111 7.1309 8.98333 6.72604C9.10556 6.32118 9.16667 5.9125 9.16667 5.5C9.16667 4.58333 8.87257 3.78507 8.28438 3.10521C7.69618 2.42535 6.96667 2.01667 6.09583 1.87917L7.79167 3.575C7.975 3.75833 8.06667 3.97222 8.06667 4.21667C8.06667 4.46111 7.975 4.675 7.79167 4.85833L4.85833 7.79167C4.675 7.975 4.46111 8.06667 4.21667 8.06667C3.97222 8.06667 3.75833 7.975 3.575 7.79167L1.87917 6.09583C2.01667 6.96667 2.42535 7.69618 3.10521 8.28438C3.78507 8.87257 4.58333 9.16667 5.5 9.16667C5.89722 9.16667 6.29444 9.10556 6.69167 8.98333C7.08889 8.86111 7.44792 8.67014 7.76875 8.41042L13.6354 14.2771V14.2771M8.06667 8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667"
+                    d="M12.9708 16.225L7.425 10.6333C7.11944 10.7556 6.81007 10.8472 6.49687 10.9083C6.18368 10.9694 5.85139 11 5.5 11C3.97222 11 2.67361 10.4653 1.60417 9.39583C0.534722 8.32639 0 7.02778 0 5.5C0 4.95 0.0763889 4.42674 0.229167 3.93021C0.381944 3.43368 0.595833 2.96389 0.870833 2.52083L4.21667 5.86667L5.86667 4.21667L2.52083 0.870833C2.96389 0.595833 3.43368 0.381944 3.93021 0.229167C4.42674 0.0763889 4.95 0 5.5 0C7.02778 0 8.32639 0.534722 9.39583 1.60417C10.4653 2.67361 11 3.97222 11 5.5C11 5.85139 10.9694 6.18368 10.9083 6.49687C10.8472 6.81007 10.7556 7.11944 10.6333 7.425L16.225 12.9708C16.4083 13.1542 16.5 13.3757 16.5 13.6354C16.5 13.8951 16.4083 14.1167 16.225 14.3L14.3 16.225C14.1167 16.4083 13.8951 16.5 13.6354 16.5C13.3757 16.5 13.1542 16.4083 12.9708 16.225V16.225M13.6354 14.2771L14.2542 13.6583L8.3875 7.79167C8.6625 7.48611 8.86111 7.1309 8.98333 6.72604C9.10556 6.32118 9.16667 5.9125 9.16667 5.5C9.16667 4.58333 8.87257 3.78507 8.28438 3.10521C7.69618 2.42535 6.96667 2.01667 6.09583 1.87917L7.79167 3.575C7.975 3.75833 8.06667 3.97222 8.06667 4.21667C8.06667 4.46111 7.975 4.675 7.79167 4.85833L4.85833 7.79167C4.675 7.975 4.46111 8.06667 4.21667 8.06667C3.97222 8.06667 3.75833 7.975 3.575 7.79167L1.87917 6.09583C2.01667 6.96667 2.42535 7.69618 3.10521 8.28438C3.78507 8.87257 4.58333 9.16667 5.5 9.16667C5.89722 9.16667 6.29444 9.10556 6.69167 8.98333C7.08889 8.86111 7.44792 8.67014 7.76875 8.41042L13.6354 14.2771V14.2771M8.06667 8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667V8.06667"
                     fill="currentColor"
                   />
                 </svg>
@@ -417,16 +504,16 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 flex items-baseline justify-between">
               <span className="font-plusJakartaSans text-3xl font-bold tracking-tight text-[#111D23]">
-                2
+                {isLoadingVehicles ? '...' : totalMaintenance}
               </span>
               <span className="rounded-full bg-[#FEF3C7] px-2.5 py-1 font-plusJakartaSans text-[11px] font-semibold text-[#B45309]">
-                Perlu Servis
+                {pctMaintenance}% Perlu Servis
               </span>
             </div>
             <div className="mt-3.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E3F0F8]">
               <div
                 className="h-full rounded-full bg-[#B45309]"
-                style={{ width: '16.7%' }}
+                style={{ width: `${pctMaintenance}%` }}
               />
             </div>
           </div>
@@ -443,46 +530,54 @@ export default function Dashboard() {
                   Kondisi Kendaraan
                 </h3>
                 <p className="font-plusJakartaSans text-xs text-[#47607E] sm:text-[13px]">
-                  Status kelaikan dan riwayat operasional terkini.
+                  Status kelaikan dan riwayat operasional armada terkini.
                 </p>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
                   aria-pressed={activeVehicleStatus === 'all'}
                   onClick={() => setActiveVehicleStatus('all')}
-                  className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${
-                    activeVehicleStatus === 'all'
+                  className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeVehicleStatus === 'all'
                       ? 'bg-white text-[#111D23] shadow-xs'
                       : 'bg-[#E3F0F8] text-[#47607E] hover:bg-[#D4E6F2]'
-                  }`}
+                    }`}
                 >
-                  Semua
+                  Semua ({totalKendaraan})
                 </button>
                 <button
                   type="button"
                   aria-pressed={activeVehicleStatus === 'available'}
                   onClick={() => setActiveVehicleStatus('available')}
-                  className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${
-                    activeVehicleStatus === 'available'
+                  className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeVehicleStatus === 'available'
                       ? 'bg-white text-[#111D23] shadow-xs'
                       : 'bg-[#E3F0F8] text-[#47607E] hover:bg-[#D4E6F2]'
-                  }`}
+                    }`}
                 >
-                  Tersedia
+                  Tersedia ({totalTersedia})
                 </button>
                 <button
                   type="button"
                   aria-pressed={activeVehicleStatus === 'rented'}
                   onClick={() => setActiveVehicleStatus('rented')}
-                  className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${
-                    activeVehicleStatus === 'rented'
+                  className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeVehicleStatus === 'rented'
                       ? 'bg-white text-[#111D23] shadow-xs'
                       : 'bg-[#E3F0F8] text-[#47607E] hover:bg-[#D4E6F2]'
-                  }`}
+                    }`}
                 >
-                  Disewa
+                  Disewa ({totalDisewa})
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={activeVehicleStatus === 'maintenance'}
+                  onClick={() => setActiveVehicleStatus('maintenance')}
+                  className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeVehicleStatus === 'maintenance'
+                      ? 'bg-white text-[#111D23] shadow-xs'
+                      : 'bg-[#E3F0F8] text-[#47607E] hover:bg-[#D4E6F2]'
+                    }`}
+                >
+                  Maintenance ({totalMaintenance})
                 </button>
                 <Link
                   to="/kendaraan"
@@ -505,238 +600,272 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Grid 3 Kendaraan */}
-            <div className="grid w-full grid-cols-1 items-stretch gap-5 lg:grid-cols-3">
-              {filteredVehicles.length === 0 ? (
-                <div className="col-span-full rounded-xl border border-[#DDEAF2] bg-white p-8 text-center">
-                  <p className="font-plusJakartaSans text-sm text-[#47607E]">
-                    Tidak ada kendaraan yang sesuai dengan filter atau kata kunci pencarian.
-                  </p>
-                </div>
-              ) : (
-                filteredVehicles.map((vehicle) => (
-                  <div
-                    key={vehicle.id}
-                    className="flex flex-col justify-between overflow-hidden rounded-xl border border-[#E3F0F8] bg-white p-4 shadow-xs transition-shadow hover:shadow-md"
+            {/* Loading / Empty / Grid Kendaraan */}
+            {isLoadingVehicles ? (
+              <div className="flex h-56 w-full flex-col items-center justify-center rounded-xl border border-[#DDEAF2] bg-white">
+                <svg
+                  className="h-8 w-8 animate-spin text-[#0F766E]"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  ></path>
+                </svg>
+                <p className="mt-3 font-plusJakartaSans text-xs text-[#47607E]">
+                  Memuat data armada dari backend...
+                </p>
+              </div>
+            ) : filteredVehicles.length === 0 ? (
+              <div className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#C7D6E3] bg-white p-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E9F6FD] text-[#0F766E]">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
                   >
-                    <div className="flex flex-col gap-3">
-                      {/* Gambar Unit */}
-                      <div className="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-lg bg-[#E3F0F8] sm:h-44">
-                        <img
-                          src={vehicle.image}
-                          alt={vehicle.name}
-                          className="h-full w-full object-cover"
-                        />
-                        <div className="absolute right-2.5 top-2.5 shadow-xs">
-                          <StatusBadge
-                            status={
-                              vehicle.status === 'available'
-                                ? 'success'
-                                : vehicle.status === 'rented'
-                                ? 'info'
-                                : 'warning'
-                            }
-                            label={vehicle.statusLabel}
-                            size="sm"
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M3 9h18M9 21V9" />
+                  </svg>
+                </div>
+                <h4 className="mt-3 font-plusJakartaSans text-sm font-bold text-[#111D23] sm:text-base">
+                  {vehicles.length === 0
+                    ? 'Belum Ada Armada Terdaftar'
+                    : 'Tidak Ada Kendaraan Sesuai Filter'}
+                </h4>
+                <p className="mt-1 max-w-sm font-plusJakartaSans text-xs text-[#47607E]">
+                  {vehicles.length === 0
+                    ? 'Database armada masih kosong. Mulai dengan menambahkan kendaraan rental pertama Anda.'
+                    : 'Coba pilih tab status lain atau hapus kata kunci pencarian.'}
+                </p>
+                <Link
+                  to="/kendaraan"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[#0F766E] px-4 py-2 font-plusJakartaSans text-xs font-semibold text-white shadow-xs hover:bg-[#0D655E]"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M6 1v10M1 6h10"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span>Buka Menu Kendaraan</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid w-full grid-cols-1 items-stretch gap-5 lg:grid-cols-3">
+                {filteredVehicles.slice(0, 6).map((vehicle) => {
+                  const photoUrl =
+                    vehicle.vehicle_photos && vehicle.vehicle_photos.length > 0
+                      ? vehicle.vehicle_photos[0].photo_url
+                      : DEFAULT_FALLBACK_IMAGE
+
+                  const isAvailable =
+                    vehicle.status === 'Available' || vehicle.status === 'Tersedia'
+                  const isRented =
+                    vehicle.status === 'Rented' || vehicle.status === 'Disewa'
+                  const isMaint =
+                    vehicle.status === 'In Maintenance' ||
+                    vehicle.status === 'Maintenance'
+
+                  const statusType = isAvailable
+                    ? 'success'
+                    : isRented
+                      ? 'info'
+                      : 'warning'
+                  const statusLabel = isAvailable
+                    ? 'Tersedia'
+                    : isRented
+                      ? 'Sedang Disewa'
+                      : 'Perlu Servis'
+
+                  const vehicleName = `${vehicle.merk} ${vehicle.tipe}`
+                  const detailUrl = `/kendaraan/detail?id=${vehicle.vehicle_id}`
+
+                  return (
+                    <div
+                      key={vehicle.vehicle_id}
+                      className="flex flex-col justify-between overflow-hidden rounded-xl border border-[#E3F0F8] bg-white p-4 shadow-xs transition-shadow hover:shadow-md"
+                    >
+                      <div className="flex flex-col gap-3">
+                        {/* Gambar Unit */}
+                        <div className="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-lg bg-[#E3F0F8] sm:h-44">
+                          <img
+                            src={photoUrl}
+                            alt={vehicleName}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = DEFAULT_FALLBACK_IMAGE
+                            }}
                           />
-                        </div>
-                        <span className="absolute bottom-2.5 left-2.5 rounded bg-white/90 px-2 py-0.5 font-plusJakartaSans text-[11px] font-semibold tracking-wider text-[#111D23] shadow-xs">
-                          {vehicle.plate}
-                        </span>
-                      </div>
-
-                      {/* Info Utama */}
-                      <div>
-                        <h4 className="font-plusJakartaSans text-base font-semibold leading-snug text-[#111D23]">
-                          {vehicle.name}
-                        </h4>
-                        <p className="mt-0.5 font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
-                          {vehicle.variant}
-                        </p>
-                      </div>
-
-                      {/* Detail spesifik per status */}
-                      {vehicle.status === 'available' && (
-                        <div className="flex flex-col gap-1.5 pt-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="flex items-center gap-1 font-plusJakartaSans text-[13px] text-[#3E4947]">
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 14 14"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="text-[#15803D]"
-                              >
-                                <path
-                                  d="M5.73333 9.73333L10.4333 5.03333L9.5 4.1L5.73333 7.86667L3.83333 5.96667L2.9 6.9L5.73333 9.73333V9.73333M6.66667 13.3333C5.74444 13.3333 4.87778 13.1583 4.06667 12.8083C3.25556 12.4583 2.55 11.9833 1.95 11.3833C1.35 10.7833 0.875 10.0778 0.525 9.26667C0.175 8.45555 0 7.58889 0 6.66667C0 5.74444 0.175 4.87778 0.525 4.06667C0.875 3.25556 1.35 2.55 1.95 1.95C2.55 1.35 3.25556 0.875 4.06667 0.525C4.87778 0.175 5.74444 0 6.66667 0C7.58889 0 8.45555 0.175 9.26667 0.525C10.0778 0.875 10.7833 1.35 11.3833 1.95C11.9833 2.55 12.4583 3.25556 12.8083 4.06667C13.1583 4.87778 13.3333 5.74444 13.3333 6.66667C13.3333 7.58889 13.1583 8.45555 12.8083 9.26667C12.4583 10.0778 11.9833 10.7833 11.3833 11.3833C10.7833 11.9833 10.0778 12.4583 9.26667 12.8083C8.45555 13.1583 7.58889 13.3333 6.66667 13.3333V13.3333M6.66667 12C8.15556 12 9.41667 11.4833 10.45 10.45C11.4833 9.41667 12 8.15556 12 6.6C12 5.17778 11.4833 3.91667 10.45 2.88333C9.41667 1.85 8.15556 1.33333 6.66667 1.33333C5.17778 1.33333 3.91667 1.85 2.88333 2.88333C1.85 3.91667 1.33333 5.17778 1.33333 6.66667C1.33333 8.15556 1.85 9.41667 2.88333 10.45C3.91667 11.4833 5.17778 12 6.66667 12V12M6.66667 6.66667V6.66667V6.66667V6.66667V6.66667V6.66667V6.66667V6.66667V6.66667V6.66667"
-                                  fill="currentColor"
-                                />
-                              </svg>
-                              {vehicle.healthCondition}
-                            </span>
-                            <span className="font-plusJakartaSans font-semibold text-[#111D23]">
-                              {vehicle.healthPercent}%
-                            </span>
-                          </div>
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E3F0F8]">
-                            <div
-                              className="h-full rounded-full bg-[#15803D]"
-                              style={{ width: `${vehicle.healthPercent}%` }}
+                          <div className="absolute right-2.5 top-2.5 shadow-xs">
+                            <StatusBadge
+                              status={statusType}
+                              label={statusLabel}
+                              size="sm"
                             />
                           </div>
-                          <p className="mt-1 flex items-center gap-1 font-plusJakartaSans text-[11px] text-[#47607E]">
-                            <svg
-                              width="11"
-                              height="12"
-                              viewBox="0 0 11 12"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M1.16667 11.6667C0.845833 11.6667 0.571181 11.5524 0.342708 11.324C0.114236 11.0955 0 10.8208 0 10.5V2.33333C0 2.0125 0.114236 1.73785 0.342708 1.50937C0.571181 1.2809 0.845833 1.16667 1.16667 1.16667H1.75V0H2.91667V1.16667H7.58333V0H8.75V1.16667H9.33333C9.65417 1.16667 9.92882 1.2809 10.1573 1.50937C10.3858 1.73785 10.5 2.0125 10.5 2.33333V10.5C10.5 10.8208 10.3858 11.0955 10.1573 11.324C9.92882 11.5524 9.65417 11.6667 9.33333 11.6667H1.16667V11.6667M1.16667 10.5H9.33333V10.5V10.5V4.66667H1.16667V10.5V10.5V10.5V10.5M1.16667 3.5H9.33333V2.33333V2.33333V2.33333H1.16667V2.33333V2.33333V3.5V3.5M1.16667 3.5V2.33333V2.33333V2.33333V2.33333V2.33333V2.33333V3.5V3.5V3.5"
-                                fill="currentColor"
-                              />
-                            </svg>
-                            {vehicle.lastService}
+                          <span className="absolute bottom-2.5 left-2.5 rounded bg-white/95 px-2 py-0.5 font-liberationMono text-[11px] font-bold tracking-wider text-[#111D23] shadow-xs">
+                            {vehicle.plat_nomor}
+                          </span>
+                        </div>
+
+                        {/* Info Utama */}
+                        <div>
+                          <h4 className="font-plusJakartaSans text-base font-semibold leading-snug text-[#111D23]">
+                            {vehicleName}
+                          </h4>
+                          <p className="mt-0.5 font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
+                            {vehicle.tahun ? `Tahun ${vehicle.tahun}` : ''}
+                            {vehicle.warna ? ` • Warna ${vehicle.warna}` : ''}
                           </p>
                         </div>
-                      )}
 
-                      {vehicle.status === 'rented' && (
-                        <div className="flex flex-col gap-1.5 rounded-lg bg-[#E3F0F8] p-2.5">
-                          <div className="flex items-center gap-1.5 font-plusJakartaSans text-xs font-semibold text-[#111D23]">
-                            <svg
-                              width="11"
-                              height="11"
-                              viewBox="0 0 11 11"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M5.33333 5.33333C4.6 5.33333 3.97222 5.07222 3.45 4.55C2.92778 4.02778 2.66667 3.4 2.66667 2.66667C2.66667 1.93333 2.92778 1.30556 3.45 0.783333C3.97222 0.261111 4.6 0 5.33333 0C6.06667 0 6.69444 0.261111 7.21667 0.783333C7.73889 1.30556 8 1.93333 8 2.66667C8 3.4 7.73889 4.02778 7.21667 4.55C6.69444 5.07222 6.06667 5.33333 5.33333 5.33333V5.33333M0 10.6667V8.8C0 8.42222 0.0972222 8.075 0.291667 7.75833C0.486111 7.44167 0.744444 7.2 1.06667 7.03333C1.75556 6.68889 2.45556 6.43056 3.16667 6.25833C3.87778 6.08611 4.6 6 5.33333 6C6.06667 6 6.78889 6.08611 7.5 6.25833C8.21111 6.43056 8.91111 6.68889 9.6 7.03333C9.92222 7.2 10.1806 7.44167 10.375 7.75833C10.5694 8.075 10.6667 8.42222 10.6667 8.8V10.6667H0V10.6667M1.33333 9.33333H9.33333V8.8C9.33333 8.67778 9.30278 8.56667 9.24167 8.46667C9.18056 8.36667 9.1 8.28889 9 8.23333C8.4 7.93333 7.79444 7.70833 7.18333 7.55833C6.57222 7.40833 5.95556 7.33333 5.33333 7.33333C4.71111 7.33333 4.09444 7.40833 3.48333 7.55833C2.87222 7.70833 2.26667 7.93333 1.66667 8.23333C1.56667 8.28889 1.48611 8.36667 1.425 8.46667C1.36389 8.56667 1.33333 8.67778 1.33333 8.8V9.33333V9.33333M5.33333 4C5.7 4 6.01389 3.86944 6.275 3.60833C6.53611 3.34722 6.66667 3.03333 6.66667 2.66667C6.66667 2.3 6.53611 1.98611 6.275 1.725C6.01389 1.46389 5.7 1.33333 5.33333 1.33333C4.96667 1.33333 4.65278 1.46389 4.39167 1.725C4.13056 1.98611 4 2.3 4 2.66667C4 3.03333 4.13056 3.34722 4.39167 3.60833C4.65278 3.86944 4.96667 4 5.33333 4V4M5.33333 2.66667V2.66667V2.66667V2.66667V2.66667V2.66667V2.66667V2.66667V2.66667V2.66667M5.33333 9.33333V9.33333V9.33333V9.33333V9.33333V9.33333V9.33333V9.33333V9.33333V9.33333V9.33333V9.33333V9.33333"
-                                fill="currentColor"
+                        {/* Detail Status Info */}
+                        {isAvailable && (
+                          <div className="flex flex-col gap-1.5 pt-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="flex items-center gap-1 font-plusJakartaSans text-[13px] text-[#3E4947]">
+                                <svg
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 14 14"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="text-[#15803D]"
+                                >
+                                  <path
+                                    d="M5.73333 9.73333L10.4333 5.03333L9.5 4.1L5.73333 7.86667L3.83333 5.96667L2.9 6.9L5.73333 9.73333V9.73333M6.66667 13.3333C5.74444 13.3333 4.87778 13.1583 4.06667 12.8083C3.25556 12.4583 2.55 11.9833 1.95 11.3833C1.35 10.7833 0.875 10.0778 0.525 9.26667C0.175 8.45555 0 7.58889 0 6.66667C0 5.74444 0.175 4.87778 0.525 4.06667C0.875 3.25556 1.35 2.55 1.95 1.95C2.55 1.35 3.25556 0.875 4.06667 0.525C4.87778 0.175 5.74444 0 6.66667 0C7.58889 0 8.45555 0.175 9.26667 0.525C10.0778 0.875 10.7833 1.35 11.3833 1.95C11.9833 2.55 12.4583 3.25556 12.8083 4.06667C13.1583 4.87778 13.3333 5.74444 13.3333 6.66667C13.3333 7.58889 13.1583 8.45555 12.8083 9.26667C12.4583 10.0778 11.9833 10.7833 11.3833 11.3833C10.7833 11.9833 10.0778 12.4583 9.26667 12.8083C8.45555 13.1583 7.58889 13.3333 6.66667 13.3333V13.3333M6.66667 12C8.15556 12 9.41667 11.4833 10.45 10.45C11.4833 9.41667 12 8.15556 12 6.6C12 5.17778 11.4833 3.91667 10.45 2.88333C9.41667 1.85 8.15556 1.33333 6.66667 1.33333C5.17778 1.33333 3.91667 1.85 2.88333 2.88333C1.85 3.91667 1.33333 5.17778 1.33333 6.66667C1.33333 8.15556 1.85 9.41667 2.88333 10.45C3.91667 11.4833 5.17778 12 6.66667 12V12M6.66667 6.66667V6.66667V6.66667V6.66667V6.66667V6.66667V6.66667V6.66667V6.66667V6.66667"
+                                    fill="currentColor"
+                                  />
+                                </svg>
+                                Siap Direntalkan
+                              </span>
+                              <span className="font-plusJakartaSans font-bold text-[#0F766E]">
+                                Rp {Number(vehicle.tarif_per_hari || 0).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E3F0F8]">
+                              <div
+                                className="h-full rounded-full bg-[#15803D]"
+                                style={{ width: '100%' }}
                               />
-                            </svg>
-                            <span>{vehicle.renterName}</span>
+                            </div>
+                            <p className="mt-1 flex items-center gap-1 font-plusJakartaSans text-[11px] text-[#47607E]">
+                              STNK: {vehicle.nomor_stnk || '-'}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-1.5 font-plusJakartaSans text-[11px] text-[#47607E]">
-                            <svg
-                              width="9"
-                              height="12"
-                              viewBox="0 0 9 12"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M4.08333 8.44375C5.04583 7.66597 5.77257 6.91736 6.26354 6.19792C6.75451 5.47847 7 4.80278 7 4.17083C7 3.29583 6.72778 2.57639 6.18333 2.0125C5.63889 1.44861 4.93889 1.16667 4.08333 1.16667C3.22778 1.16667 2.52778 1.44861 1.98333 2.0125C1.43889 2.57639 1.16667 3.29583 1.16667 4.17083C1.16667 4.80278 1.41215 5.47847 1.90313 6.19792C2.3941 6.91736 3.12083 7.66597 4.08333 8.44375V8.44375M4.08333 9.91667C2.7125 8.90556 1.68924 7.92361 1.01354 6.97083C0.337847 6.01806 0 5.08472 0 4.17083C0 2.95556 0.379167 1.9566 1.1375 1.17396C1.89583 0.391319 2.87778 0 4.08333 0C5.28889 0 6.27083 0.391319 7.02917 1.17396C7.7875 1.9566 8.16667 2.95556 8.16667 4.17083C8.16667 5.08472 7.82882 6.01806 7.15312 6.97083C6.47743 7.92361 5.45417 8.90556 4.08333 9.91667V9.91667M4.08333 5.25C4.40417 5.25 4.67882 5.13576 4.90729 4.90729C5.13576 4.67882 5.25 4.40417 5.25 4.08333C5.25 3.7625 5.13576 3.48785 4.90729 3.25938C4.67882 3.0309 4.40417 2.91667 4.08333 2.91667C3.7625 2.91667 3.48785 3.0309 3.25938 3.25938C3.0309 3.48785 2.91667 3.7625 2.91667 4.08333C2.91667 4.40417 3.0309 4.67882 3.25938 4.90729C3.48785 5.13576 3.7625 5.25 4.08333 5.25V5.25M0 11.6667V10.5H8.16667V11.6667H0V11.6667M4.08333 4.08333V4.08333V4.08333V4.08333V4.08333V4.08333V4.08333V4.08333V4.08333V4.08333"
-                                fill="currentColor"
-                              />
-                            </svg>
-                            <span>{vehicle.city}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-plusJakartaSans text-[11px] text-[#47607E]">
-                            <svg
-                              width="13"
-                              height="13"
-                              viewBox="0 0 13 13"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M1.16667 11.6667C0.845833 11.6667 0.571181 11.5524 0.342708 11.324C0.114236 11.0955 0 10.8208 0 10.5V2.33333C0 2.0125 0.114236 1.73785 0.342708 1.50937C0.571181 1.2809 0.845833 1.16667 1.16667 1.16667H1.75V0H2.91667V1.16667H7.58333V0H8.75V1.16667H9.33333C9.65417 1.16667 9.92882 1.2809 10.1573 1.50937C10.3858 1.73785 10.5 2.0125 10.5 2.33333V5.83333H9.33333V4.66667H1.16667V10.5V10.5V10.5H5.25V11.6667H1.16667V11.6667M9.33333 12.8333C8.62361 12.8333 8.00382 12.6122 7.47396 12.1698C6.9441 11.7274 6.61111 11.1708 6.475 10.5H7.37917C7.50556 10.9278 7.74618 11.2778 8.10104 11.55C8.4559 11.8222 8.86667 11.9583 9.33333 11.9583C9.89722 11.9583 10.3785 11.759 10.7771 11.3604C11.1757 10.9618 11.375 10.4806 11.375 9.91667C11.375 9.35278 11.1757 8.87153 10.7771 8.47292C10.3785 8.07431 9.89722 7.875 9.33333 7.875C9.05139 7.875 8.78889 7.92604 8.54583 8.02812C8.30278 8.13021 8.08889 8.27361 7.90417 8.45833H8.75V9.33333H6.41667V7H7.29167V7.83125C7.55417 7.57847 7.86042 7.37674 8.21042 7.22604C8.56042 7.07535 8.93472 7 9.33333 7C10.1403 7 10.8281 7.28438 11.3969 7.85313C11.9656 8.42188 12.25 9.10972 12.25 9.91667C12.25 10.7236 11.9656 11.4115 11.3969 11.9802C10.8281 12.549 10.1403 12.8333 9.33333 12.8333V12.8333M1.16667 3.5H9.33333V2.33333V2.33333V2.33333H1.16667V2.33333V2.33333V3.5V3.5M1.16667 3.5V2.33333V2.33333V2.33333V2.33333V2.33333V2.33333V3.5V3.5V3.5"
-                                fill="currentColor"
-                              />
-                            </svg>
-                            <span>{vehicle.returnDate}</span>
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {vehicle.status === 'maintenance' && (
-                        <div className="flex flex-col gap-1.5 pt-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="flex items-center gap-1 font-plusJakartaSans text-[13px] text-[#B45309]">
-                              <svg
-                                width="15"
-                                height="13"
-                                viewBox="0 0 15 13"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="text-[#B45309]"
-                              >
-                                <path
-                                  d="M0 12.6667L7.33333 0L14.6667 12.6667H0V12.6667M2.3 11.3333H12.3667L7.33333 2.66667L2.3 11.3333V11.3333M7.33333 10.6667C7.52222 10.6667 7.68056 10.6028 7.80833 10.475C7.93611 10.3472 8 10.1889 8 10C8 9.81111 7.93611 9.65278 7.80833 9.525C7.68056 9.39722 7.52222 9.33333 7.33333 9.33333C7.14444 9.33333 6.98611 9.39722 6.85833 9.525C6.73056 9.65278 6.66667 9.81111 6.66667 10C6.66667 10.1889 6.73056 10.3472 6.85833 10.475C6.98611 10.6028 7.14444 10.6667 7.33333 10.6667V10.6667M6.66667 8.66667H8V5.33333H6.66667V8.66667V8.66667M7.33333 7V7V7V7V7"
-                                  fill="currentColor"
-                                />
-                              </svg>
-                              {vehicle.issueLabel}
-                            </span>
-                            <span className="font-plusJakartaSans font-semibold text-[#B45309]">
-                              {vehicle.healthPercent}%
-                            </span>
+                        {isRented && (
+                          <div className="flex flex-col gap-1.5 rounded-lg bg-[#E3F0F8] p-2.5">
+                            <div className="flex items-center justify-between font-plusJakartaSans text-xs font-semibold text-[#111D23]">
+                              <span>Status Unit</span>
+                              <span className="text-[#2563EB]">Sedang On-Trip</span>
+                            </div>
+                            <div className="flex items-center justify-between font-plusJakartaSans text-[11px] text-[#47607E]">
+                              <span>Tarif Sewa:</span>
+                              <span className="font-bold text-[#111D23]">
+                                Rp {Number(vehicle.tarif_per_hari || 0).toLocaleString('id-ID')} / hari
+                              </span>
+                            </div>
                           </div>
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E3F0F8]">
-                            <div
-                              className="h-full rounded-full bg-[#B45309]"
-                              style={{ width: `${vehicle.healthPercent}%` }}
-                            />
-                          </div>
-                          <p className="mt-1 flex items-center gap-1 font-plusJakartaSans text-[11px] text-[#B45309]">
-                            <svg
-                              width="13"
-                              height="12"
-                              viewBox="0 0 13 12"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M6.2125 11.4625C5.48333 11.4625 4.80035 11.324 4.16354 11.0469C3.52674 10.7698 2.97257 10.3955 2.50104 9.92396C2.02951 9.45243 1.65521 8.89826 1.37812 8.26146C1.10104 7.62465 0.9625 6.94167 0.9625 6.2125C0.9625 5.48333 1.10104 4.80035 1.37812 4.16354C1.65521 3.52674 2.02951 2.97257 2.50104 2.50104C2.97257 2.02951 3.52674 1.65521 4.16354 1.37812C4.80035 1.10104 5.48333 0.9625 6.2125 0.9625C6.94167 0.9625 7.62465 1.10104 8.26146 1.37812C8.89826 1.65521 9.45243 2.02951 9.92396 2.50104C10.3955 2.97257 10.7698 3.52674 11.0469 4.16354C11.324 4.80035 11.4625 5.48333 11.4625 6.2125C11.4625 6.94167 11.324 7.62465 11.0469 8.26146C10.7698 8.89826 10.3955 9.45243 9.92396 9.92396C9.45243 10.3955 8.89826 10.7698 8.26146 11.0469C7.62465 11.324 6.94167 11.4625 6.2125 11.4625V11.4625M6.2125 6.2125V6.2125V6.2125V6.2125V6.2125V6.2125V6.2125V6.2125V6.2125V6.2125M7.84583 8.6625L8.6625 7.84583L6.79583 5.97917V3.29583H5.62917V6.44583L7.84583 8.6625V8.6625M2.47917 0L3.29583 0.816667L0.816667 3.29583L0 2.47917L2.47917 0V0M9.94583 0L12.425 2.47917L11.6083 3.29583L9.12917 0.816667L9.94583 0V0M6.2125 10.2958C7.35 10.2958 8.31493 9.89965 9.10729 9.10729C9.89965 8.31493 10.2958 7.35 10.2958 6.2125C10.2958 5.075 9.89965 4.11007 9.10729 3.31771C8.31493 2.52535 7.35 2.12917 6.2125 2.12917C5.075 2.12917 4.11007 2.52535 3.31771 3.31771C2.52535 4.11007 2.12917 5.075 2.12917 6.2125C2.12917 7.35 2.52535 8.31493 3.31771 9.10729C4.11007 9.89965 5.075 10.2958 6.2125 10.2958V10.2958"
-                                fill="currentColor"
-                              />
-                            </svg>
-                            {vehicle.scheduleInfo}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                        )}
 
-                    {/* Bottom Action Footer */}
-                    <div className="mt-4 flex items-center justify-between border-t border-[#E3F0F8] pt-3.5">
-                      <div className="flex items-center gap-1.5 font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
-                        {vehicle.status === 'rented' ? (
-                          <>
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
-                            <span className="text-[#2563EB]">{vehicle.gpsStatus}</span>
-                          </>
-                        ) : (
-                          <span>{vehicle.location}</span>
+                        {isMaint && (
+                          <div className="flex flex-col gap-1.5 pt-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="flex items-center gap-1 font-plusJakartaSans text-[13px] text-[#B45309]">
+                                <svg
+                                  width="15"
+                                  height="13"
+                                  viewBox="0 0 15 13"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="text-[#B45309]"
+                                >
+                                  <path
+                                    d="M0 12.6667L7.33333 0L14.6667 12.6667H0V12.6667M2.3 11.3333H12.3667L7.33333 2.66667L2.3 11.3333V11.3333M7.33333 10.6667C7.52222 10.6667 7.68056 10.6028 7.80833 10.475C7.93611 10.3472 8 10.1889 8 10C8 9.81111 7.93611 9.65278 7.80833 9.525C7.68056 9.39722 7.52222 9.33333 7.33333 9.33333C7.14444 9.33333 6.98611 9.39722 6.85833 9.525C6.73056 9.65278 6.66667 9.81111 6.66667 10C6.66667 10.1889 6.73056 10.3472 6.85833 10.475C6.98611 10.6028 7.14444 10.6667 7.33333 10.6667V10.6667M6.66667 8.66667H8V5.33333H6.66667V8.66667V8.66667M7.33333 7V7V7V7V7"
+                                    fill="currentColor"
+                                  />
+                                </svg>
+                                Sedang Dalam Perbaikan
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E3F0F8]">
+                              <div
+                                className="h-full rounded-full bg-[#B45309]"
+                                style={{ width: '45%' }}
+                              />
+                            </div>
+                            <p className="mt-1 flex items-center gap-1 font-plusJakartaSans text-[11px] text-[#B45309]">
+                              Unit belum dapat disewakan
+                            </p>
+                          </div>
                         )}
                       </div>
 
-                      <Link
-                        to={vehicle.detailUrl}
-                        className="flex items-center gap-1 font-plusJakartaSans text-xs font-semibold text-[#0F766E] transition-colors hover:text-[#0D655E]"
-                      >
-                        <span>Lihat detail</span>
-                        <svg
-                          width="11"
-                          height="11"
-                          viewBox="0 0 11 11"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M8.11667 6H0V4.66667H8.11667L4.38333 0.933333L5.33333 0L10.6667 5.33333L5.33333 10.6667L4.38333 9.73333L8.11667 6V6"
-                            fill="currentColor"
+                      {/* Bottom Action Footer */}
+                      <div className="mt-4 flex items-center justify-between border-t border-[#E3F0F8] pt-3.5">
+                        <div className="flex items-center gap-1.5 font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${isAvailable
+                                ? 'bg-[#15803D]'
+                                : isRented
+                                  ? 'bg-[#2563EB]'
+                                  : 'bg-[#B45309]'
+                              }`}
                           />
-                        </svg>
-                      </Link>
+                          <span className="truncate max-w-[130px]">
+                            {vehicle.deskripsi || 'Depot Pusat'}
+                          </span>
+                        </div>
+
+                        <Link
+                          to={detailUrl}
+                          className="flex items-center gap-1 font-plusJakartaSans text-xs font-semibold text-[#0F766E] transition-colors hover:text-[#0D655E]"
+                        >
+                          <span>Lihat detail</span>
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 11 11"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M8.11667 6H0V4.66667H8.11667L4.38333 0.933333L5.33333 0L10.6667 5.33333L5.33333 10.6667L4.38333 9.73333L8.11667 6V6"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Banner Efisiensi Bahan Bakar */}
             <div className="flex w-full flex-col items-start justify-between gap-3 rounded-xl bg-[#E3F0F8] p-4 sm:flex-row sm:items-center">
@@ -760,19 +889,19 @@ export default function Dashboard() {
                     Efisiensi Bahan Bakar & Jarak Tempuh Armada
                   </h4>
                   <p className="font-plusJakartaSans text-[11px] text-[#47607E] sm:text-xs">
-                    Total akumulasi perjalanan minggu ini: 4.820 km • Rata-rata konsumsi BBM: 13.8 km/L
+                    Total armada aktif: {totalKendaraan} unit • Siap sewa: {totalTersedia} unit
                   </p>
                 </div>
               </div>
               <div className="shrink-0 rounded-lg bg-white px-3 py-1.5 shadow-xs">
-                <span className="font-plusJakartaSans text-xs font-semibold text-[#111D23]">
-                  +8.4% Utilisasi
+                <span className="font-plusJakartaSans text-xs font-semibold text-[#005C55]">
+                  {pctDisewa}% Utilisasi Armada
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Kolom Kanan: Maintenance Terdekat */}
+          {/* Kolom Kanan: Maintenance Terdekat & Staf */}
           <div className="flex min-w-0 flex-col items-start gap-4">
             <div className="flex w-full items-center justify-between">
               <div>
@@ -780,14 +909,14 @@ export default function Dashboard() {
                   Maintenance Terdekat
                 </h3>
                 <p className="font-plusJakartaSans text-xs text-[#47607E] sm:text-[13px]">
-                  Jadwal perawatan pencegahan.
+                  Jadwal perawatan pencegahan unit armada.
                 </p>
               </div>
               <Link
-                to="/maintenance"
+                to="/kendaraan"
                 className="flex items-center gap-1 font-plusJakartaSans text-xs font-semibold text-[#005C55] transition-colors hover:text-[#0F766E] sm:text-[13px]"
               >
-                <span>Kalender</span>
+                <span>Kelola</span>
                 <svg
                   width="5"
                   height="8"
@@ -805,7 +934,60 @@ export default function Dashboard() {
 
             {/* Card Container Maintenance */}
             <div className="flex w-full flex-col items-start gap-3.5 rounded-xl border border-[#E3F0F8] bg-white p-4 shadow-xs">
-              {/* Item 1 */}
+              {/* Unit dari database yang berstatus maintenance */}
+              {maintenanceList.length > 0 &&
+                maintenanceList.map((mUnit) => (
+                  <div
+                    key={mUnit.vehicle_id}
+                    className="flex w-full flex-col gap-2 rounded-lg bg-[#FEF3C7]/40 p-3.5 border border-[#FDE68A]"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FEF3C7] text-[#B45309]">
+                          <svg
+                            width="17"
+                            height="18"
+                            viewBox="0 0 17 18"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M14.0417 17.4792C13.9306 17.4792 13.8264 17.4618 13.7292 17.4271C13.6319 17.3924 13.5417 17.3333 13.4583 17.25L9.20833 13C9.125 12.9167 9.06597 12.8264 9.03125 12.7292C8.99653 12.6319 8.97917 12.5278 8.97917 12.4167C8.97917 12.3056 8.99653 12.2014 9.03125 12.1042C9.06597 12.0069 9.125 11.9167 9.20833 11.8333L10.9792 10.0625C11.0625 9.97917 11.1528 9.92014 11.25 9.88542C11.3472 9.85069 11.4514 9.83333 11.5625 9.83333C11.6736 9.83333 11.7778 9.85069 11.875 9.88542C11.9722 9.92014 12.0625 9.97917 12.1458 10.0625L16.3958 14.3125C16.4792 14.3958 16.5382 14.4861 16.5729 14.5833C16.6076 14.6806 16.625 14.7847 16.625 14.8958C16.625 15.0069 16.6076 15.1111 16.5729 15.2083C16.5382 15.3056 16.4792 15.3958 16.3958 15.4792L14.625 17.25C14.5417 17.3333 14.4514 17.3924 14.3542 17.4271C14.2569 17.4618 14.1528 17.4792 14.0417 17.4792V17.4792M14.0417 15.5L14.6458 14.8958L11.5833 11.8333L10.9792 12.4375L14.0417 15.5V15.5M2.60417 17.5C2.49306 17.5 2.38542 17.4792 2.28125 17.4375C2.17708 17.3958 2.08333 17.3333 2 17.25L0.25 15.5C0.166667 15.4167 0.104167 15.3229 0.0625 15.2188C0.0208333 15.1146 0 15.0069 0 14.8958C0 14.7847 0.0208333 14.6806 0.0625 14.5833C0.104167 14.4861 0.166667 14.3958 0.25 14.3125L4.66667 9.89583H6.4375L7.14583 9.1875L3.70833 5.75H2.52083L0 3.22917L2.35417 0.875L4.875 3.39583V4.58333L8.3125 8.02083L10.7292 5.60417L9.83333 4.70833L11 3.54167H8.64583L8.0625 2.95833L11.0208 0L11.6042 0.583333V2.9375L12.7708 1.77083L15.7292 4.72917C15.9653 4.96528 16.1458 5.23264 16.2708 5.53125C16.3958 5.82986 16.4583 6.14583 16.4583 6.47917C16.4583 6.8125 16.3958 7.13194 16.2708 7.4375C16.1458 7.74306 15.9653 8.01389 15.7292 8.25L13.9583 6.47917L12.7917 7.64583L11.9167 6.77083L7.60417 11.0833V12.8333L3.1875 17.25C3.10417 17.3333 3.01389 17.3958 2.91667 17.4375C2.81944 17.4792 2.71528 17.5 2.60417 17.5V17.5M2.60417 15.5L6.14583 11.9583V11.3542H5.54167L2 14.8958L2.60417 15.5V15.5M2.60417 15.5L2 14.8958V14.8958L2.3125 15.1875L2.60417 15.5V15.5V15.5M14.0417 15.5V15.5L14.6458 14.8958V14.8958L14.0417 15.5V15.5"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-plusJakartaSans text-sm font-semibold text-[#111D23]">
+                            {mUnit.merk} {mUnit.tipe}
+                          </h4>
+                          <p className="font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
+                            {mUnit.plat_nomor}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-[#FEF3C7] px-2.5 py-1 font-plusJakartaSans text-[11px] font-bold text-[#B45309]">
+                        Perlu Servis
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[#DDEAF2]/60 pt-2 text-xs">
+                      <div className="flex items-center gap-1.5 font-plusJakartaSans text-[12px] text-[#111D23]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#B45309]" />
+                        <span className="truncate max-w-[200px]">
+                          {mUnit.deskripsi || 'Pemeriksaan rutin bengkel'}
+                        </span>
+                      </div>
+                      <Link
+                        to={`/kendaraan/detail?id=${mUnit.vehicle_id}`}
+                        className="font-plusJakartaSans text-[11px] font-semibold text-[#0F766E] hover:underline"
+                      >
+                        Lihat Unit
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+
+              {/* Item Terjadwal 1 */}
               <div className="flex w-full flex-col gap-2 rounded-lg bg-[#E9F6FD] p-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
@@ -825,10 +1007,10 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <h4 className="font-plusJakartaSans text-sm font-semibold text-[#111D23]">
-                        Mitsubishi Xpander
+                        Jadwal Servis Berkala
                       </h4>
                       <p className="font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
-                        B 9012 EF
+                        Bengkel Rekanan Resmi
                       </p>
                     </div>
                   </div>
@@ -847,7 +1029,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Item 2 */}
+              {/* Item Terjadwal 2 */}
               <div className="flex w-full flex-col gap-2 rounded-lg bg-[#E9F6FD] p-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
@@ -867,21 +1049,21 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <h4 className="font-plusJakartaSans text-sm font-semibold text-[#111D23]">
-                        Toyota Avanza
+                        Ganti Oli Rutin
                       </h4>
                       <p className="font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
-                        B 1234 AB
+                        Perawatan 10.000 KM
                       </p>
                     </div>
                   </div>
                   <span className="rounded-full bg-[#DDEAF2] px-2.5 py-1 font-plusJakartaSans text-[11px] font-bold text-[#47607E]">
-                    16 hari lagi
+                    Minggu depan
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t border-[#DDEAF2]/60 pt-2 text-xs">
                   <div className="flex items-center gap-1.5 font-plusJakartaSans text-[12px] text-[#111D23]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#47607E]" />
-                    <span>Servis rutin berkala 20.000 KM</span>
+                    <span>Servis oli mesin & tune-up</span>
                   </div>
                   <span className="font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
                     09 Nov
@@ -889,51 +1071,9 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Item 3 */}
-              <div className="flex w-full flex-col gap-2 rounded-lg bg-[#E9F6FD] p-3.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FEF3C7] text-[#B45309]">
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 15 15"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M0.833333 15C0.597222 15 0.399306 14.9201 0.239583 14.7604C0.0798611 14.6007 0 14.4028 0 14.1667C0 13.9306 0.0798611 13.7326 0.239583 13.5729C0.399306 13.4132 0.597222 13.3333 0.833333 13.3333H1.66667V8.33333H0.833333C0.597222 8.33333 0.399306 8.25347 0.239583 8.09375C0.0798611 7.93403 0 7.73611 0 7.5C0 7.26389 0.0798611 7.06597 0.239583 6.90625C0.399306 6.74653 0.597222 6.66667 0.833333 6.66667H1.66667V1.66667H0.833333C0.597222 1.66667 0.399306 1.58681 0.239583 1.42708C0.0798611 1.26736 0 1.06944 0 0.833333C0 0.597222 0.0798611 0.399306 0.239583 0.239583C0.399306 0.0798611 0.597222 0 0.833333 0H14.1667C14.4028 0 14.6007 0.0798611 14.7604 0.239583C14.9201 0.399306 15 0.597222 15 0.833333C15 1.06944 14.9201 1.26736 14.7604 1.42708C14.4028 1.66667 14.1667 1.66667 14.1667 1.66667H13.3333V6.66667H14.1667C14.4028 6.66667 14.6007 6.74653 14.7604 6.90625C14.9201 7.06597 15 7.26389 15 7.5C15 7.73611 14.9201 7.93403 14.7604 8.09375C14.6007 8.25347 14.4028 8.33333 14.1667 8.33333H13.3333V13.3333H14.1667C14.4028 13.3333 14.6007 13.4132 14.7604 13.5729C14.9201 13.7326 15 13.9306 15 14.1667C15 14.4028 14.9201 14.6007 14.7604 14.7604C14.6007 14.9201 14.4028 15 14.1667 15H0.833333V15M3.33333 13.3333H11.6667V8.33333V8.33333C11.4306 8.33333 11.2326 8.25347 11.0729 8.09375C10.9132 7.93403 10.8333 7.73611 10.8333 7.5C10.8333 7.26389 10.9132 7.06597 11.0729 6.90625C11.2326 6.74653 11.4306 6.66667 11.6667 6.66667V6.66667V1.66667H3.33333V6.66667V6.66667C3.56944 6.66667 3.76736 6.74653 3.92708 6.90625C4.08681 7.06597 4.16667 7.26389 4.16667 7.5C4.16667 7.73611 4.08681 7.93403 3.92708 8.09375C3.76736 8.25347 3.56944 8.33333 3.33333 8.33333V8.33333V13.3333V13.3333M7.5 10.8333C8.19444 10.8333 8.78472 10.5938 9.27083 10.1146C9.75694 9.63542 10 9.05556 10 8.375C10 7.83333 9.84375 7.36806 9.53125 6.97917C9.21875 6.59028 8.54167 5.79167 7.5 4.58333C6.45833 5.77778 5.78125 6.57292 5.46875 6.96875C5.15625 7.36458 5 7.83333 5 8.375C5 9.05556 5.24306 9.63542 5.72917 10.1146C6.21528 10.5938 6.80556 10.8333 7.5 10.8333V10.8333M3.33333 13.3333V1.66667V1.66667V13.3333V13.3333V13.3333"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-plusJakartaSans text-sm font-semibold text-[#111D23]">
-                        Honda Mobilio
-                      </h4>
-                      <p className="font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
-                        W 4321 MN
-                      </p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-[#FEF3C7] px-2.5 py-1 font-plusJakartaSans text-[11px] font-bold text-[#B45309]">
-                    3 hari lagi
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-t border-[#DDEAF2]/60 pt-2 text-xs">
-                  <div className="flex items-center gap-1.5 font-plusJakartaSans text-[12px] text-[#111D23]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#B45309]" />
-                    <span>Ganti oli mesin & filter oli</span>
-                  </div>
-                  <span className="font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
-                    27 Okt
-                  </span>
-                </div>
-              </div>
-
-              {/* Tombol Jadwalkan Servis Baru */}
+              {/* Tombol ke menu Kendaraan */}
               <Link
-                to="/maintenance"
+                to="/kendaraan"
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#E3F0F8] py-2.5 font-plusJakartaSans text-xs font-semibold text-[#111D23] transition-colors hover:bg-[#D4E6F2] sm:text-[13px]"
               >
                 <svg
@@ -948,7 +1088,7 @@ export default function Dashboard() {
                     fill="currentColor"
                   />
                 </svg>
-                <span>Jadwalkan Servis Baru</span>
+                <span>Kelola Status Armada</span>
               </Link>
             </div>
 
@@ -969,10 +1109,10 @@ export default function Dashboard() {
               </svg>
               <div>
                 <h4 className="font-plusJakartaSans text-xs font-semibold sm:text-[13px]">
-                  Tips Kesiapan Akhir Pekan
+                  Tips Kesiapan Armada Rental
                 </h4>
                 <p className="mt-1 font-plusJakartaSans text-[11px] leading-relaxed text-white/90">
-                  Permintaan rental diproyeksikan naik 35% hari Jumat ini. Pastikan servis Honda Mobilio dan Xpander selesai sebelum Kamis sore.
+                  Pastikan dokumen STNK dan foto fisik unit terbarui di sistem sebelum unit diserahkan kepada pelanggan sewa.
                 </p>
               </div>
             </div>
@@ -985,7 +1125,7 @@ export default function Dashboard() {
                     Staf & Pengguna Terdaftar
                   </h4>
                   <p className="font-plusJakartaSans text-[11px] text-[#47607E]">
-                    Akun terintegrasi database Supabase
+                    Akun terintegrasi database backend
                   </p>
                 </div>
                 <span className="rounded-full bg-[#E9F6FD] px-2.5 py-1 font-plusJakartaSans text-[11px] font-semibold text-[#0F766E]">
@@ -1022,11 +1162,10 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <span
-                        className={`rounded-full px-2 py-0.5 font-plusJakartaSans text-[10px] font-semibold ${
-                          item.role === 'Admin'
+                        className={`rounded-full px-2 py-0.5 font-plusJakartaSans text-[10px] font-semibold ${item.role === 'Admin'
                             ? 'bg-[#FEF3C7] text-[#B45309]'
                             : 'bg-[#DCFCE7] text-[#15803D]'
-                        }`}
+                          }`}
                       >
                         {item.role || 'Staff'}
                       </span>
