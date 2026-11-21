@@ -1,16 +1,8 @@
-<<<<<<< HEAD
-import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import Header from '../components/Header'
-import StatusBadge from '../components/StatusBadge'
-=======
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
 import VehicleGallery from '../components/VehicleGallery'
-import { vehiclesData, getVehicleById } from '../data/vehicles'
->>>>>>> feature/frontend-brand-update
 import {
   deleteVehicle,
   deleteVehiclePhoto,
@@ -21,34 +13,17 @@ import {
 } from '../services/vehicleApi'
 
 const DEFAULT_FALLBACK_IMAGE =
-  '/Ab6axua4c7ktwfv2kggaukyyw6w0mube8oidcbk100iqx7tw88d3stqxfjop0vgedgj0p98yi23s_ssymy9vuknwuzqgkam52ekbgnpehxbt4izq7nltsb1y9yw_1cwwsyi3cvaysb0gz2thbratlsy4_qncajlhslrbqxvhkwcpy0b2css1ubppa8idvy77eg9wmzbzpykiuos4mzxyb_vwms19zbiutulwmrppbb3ta0xyonnckspvg.png'
+  '/Ab6axua7enflctrgawzxbuaxw0vvkga8l5ontrgzgjdvwbsjdgrahbmateoa2kjg_tqafywm4gthvmwr9uislxzo3obancdzvtkywbhzlbku9bx1itb91dtst0c0lwlhzygcbhu0raeac8qxpb1biaarqokmfdgs64rfup0azjbrngwrwnvsydqr9normwepupyn9ikntq3hv_p4og1u0tiap7gloxe0gi1hxasrubwyy3zahbczsq.png'
 
 export default function Detail() {
   const navigate = useNavigate()
   const { id: paramId } = useParams()
-<<<<<<< HEAD
   const [searchParams] = useSearchParams()
-  const queryId = searchParams.get('id')
-  const vehicleId = paramId || queryId
-=======
-  const [searchParams, setSearchParams] = useSearchParams()
   const queryId = searchParams.get('id')
   const vehicleId = queryId || paramId
 
-  // Data statis dipertahankan untuk pilihan cepat dan galeri desain frontend.
-  // Detail utama tetap menggunakan data terbaru dari backend.
-  const activeVehicle = useMemo(
-    () => getVehicleById(queryId) || vehiclesData[0],
-    [queryId]
-  )
-
-  const handleSwitchVehicle = (newId) => {
-    setSearchParams({ id: newId })
-  }
->>>>>>> feature/frontend-brand-update
-
   const [vehicle, setVehicle] = useState(null)
-  const [isLoading, setIsLoading] = useState(Boolean(vehicleId))
+  const [isLoading, setIsLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState('')
   const [actionFeedback, setActionFeedback] = useState('')
   const [copied, setCopied] = useState(false)
@@ -57,11 +32,12 @@ export default function Detail() {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0)
 
   const loadVehicleDetail = useCallback(async () => {
     if (!vehicleId) {
       setIsLoading(false)
+      setVehicle(null)
+      setErrorMsg('ID kendaraan tidak ditentukan. Silakan pilih unit dari daftar armada.')
       return
     }
 
@@ -71,9 +47,13 @@ export default function Detail() {
       const res = await fetchVehicleById(vehicleId)
       if (res && res.data) {
         setVehicle(res.data)
+      } else {
+        setVehicle(null)
+        setErrorMsg('Data unit armada tidak ditemukan di database backend.')
       }
     } catch (err) {
       console.error('Error fetching vehicle detail:', err)
+      setVehicle(null)
       setErrorMsg(err.message || 'Kendaraan tidak ditemukan di backend.')
     } finally {
       setIsLoading(false)
@@ -105,7 +85,7 @@ export default function Detail() {
     setIsUpdatingStatus(true)
     try {
       await updateVehicle(vehicleId, { status: newStatus })
-      setActionFeedback(`Status berhasil diubah menjadi "${newStatus}"`)
+      setActionFeedback(`Status armada berhasil diubah menjadi "${newStatus}"`)
       await loadVehicleDetail()
       setTimeout(() => setActionFeedback(''), 3000)
     } catch (err) {
@@ -121,6 +101,12 @@ export default function Detail() {
     const token = getAuthToken()
     if (!token) {
       alert('Anda harus Sign In terlebih dahulu untuk mengunggah foto.')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ukuran file foto maksimal 5MB.')
+      e.target.value = ''
       return
     }
 
@@ -142,7 +128,7 @@ export default function Detail() {
     if (!confirm('Apakah Anda yakin ingin menghapus foto ini?')) return
     try {
       await deleteVehiclePhoto(vehicleId, photoId)
-      setActionFeedback('Foto berhasil dihapus.')
+      setActionFeedback('Foto berhasil dihapus dari Cloudflare R2.')
       await loadVehicleDetail()
       setTimeout(() => setActionFeedback(''), 3000)
     } catch (err) {
@@ -163,135 +149,83 @@ export default function Detail() {
     }
   }
 
-  // Fallback demo data jika tidak ada ID atau gagal
-  const vehicleName = vehicle
-    ? `${vehicle.merk} ${vehicle.tipe}`
-    : 'Toyota Avanza 1.3 G'
-  const vehiclePlate = vehicle ? vehicle.plat_nomor : 'L 1234 AB'
-  const vehicleStatus = vehicle ? vehicle.status : 'Available'
-  const vehicleDesc =
-    vehicle?.deskripsi ||
-    'Kondisi prima siap operasional jarak dekat maupun luar kota. Dikelola berkala via bengkel mitra dengan riwayat pemeliharaan terpantau penuh.'
+  // Real vehicle data mappings
+  const vehicleName = vehicle ? `${vehicle.merk} ${vehicle.tipe}` : ''
+  const vehiclePlate = vehicle?.plat_nomor || ''
+  const vehicleStatus = vehicle?.status || 'Available'
+  const vehicleDesc = vehicle?.deskripsi || 'Tidak ada deskripsi tambahan untuk unit armada ini.'
 
-  const isAvailable =
-    vehicleStatus === 'Available' || vehicleStatus === 'Tersedia'
+  const isAvailable = vehicleStatus === 'Available' || vehicleStatus === 'Tersedia'
   const isRented = vehicleStatus === 'Rented' || vehicleStatus === 'Disewa'
-  const statusBadgeVariant = isAvailable
-    ? 'success'
-    : isRented
-<<<<<<< HEAD
-      ? 'info'
-      : 'warning'
-  const statusBadgeLabel = isAvailable
-    ? 'Tersedia'
-    : isRented
-      ? 'Sedang Disewa'
-      : 'Perlu Servis'
-=======
-      ? 'info'
-      : 'warning'
-  const statusBadgeLabel = isAvailable
-    ? 'Tersedia'
-    : isRented
-      ? 'Sedang Disewa'
-      : 'Perlu Servis'
->>>>>>> feature/frontend-brand-update
+  const statusBadgeVariant = isAvailable ? 'success' : isRented ? 'info' : 'warning'
+  const statusBadgeLabel = isAvailable ? 'Tersedia' : isRented ? 'Sedang Disewa' : 'Perlu Servis'
 
-  const photos =
-    vehicle?.vehicle_photos && vehicle.vehicle_photos.length > 0
-      ? vehicle.vehicle_photos
-      : [{ photo_url: DEFAULT_FALLBACK_IMAGE, photo_id: null }]
+  // Gallery slider images mapped from real Cloudflare R2 database records
+  const galleryImages = useMemo(() => {
+    const list = vehicle?.vehicle_photos
+    if (Array.isArray(list) && list.length > 0) {
+      return list.map((p, idx) => ({
+        id: p.photo_id || idx,
+        url: p.photo_url,
+        title: `Foto ${p.photo_type || 'Armada'} (${idx + 1})`,
+        category: p.photo_type || 'Eksterior',
+        caption: `Dokumentasi resmi unit ${vehicleName} di Cloudflare R2`,
+      }))
+    }
+    return [
+      {
+        id: 'default',
+        url: DEFAULT_FALLBACK_IMAGE,
+        title: 'Foto Default',
+        category: 'Eksterior',
+        caption: 'Belum ada foto yang diunggah ke Cloudflare R2 untuk armada ini.',
+      },
+    ]
+  }, [vehicle?.vehicle_photos, vehicleName])
 
-  const activePhotoUrl =
-    photos[selectedPhotoIndex]?.photo_url || DEFAULT_FALLBACK_IMAGE
+  const photos = useMemo(() => {
+    return Array.isArray(vehicle?.vehicle_photos) ? vehicle.vehicle_photos : []
+  }, [vehicle?.vehicle_photos])
 
-  const specs = [
-    { label: 'Nomor Polisi', value: vehiclePlate, isMono: true },
-    {
-      label: 'Tahun Rilis',
-      value: vehicle?.tahun ? String(vehicle.tahun) : '2022',
-    },
-    { label: 'Warna Bodi', value: vehicle?.warna || 'Putih Metalik' },
-<<<<<<< HEAD
-=======
-    { label: 'Transmisi', value: vehicle?.transmisi || vehicle?.transmission || 'Manual' },
-    { label: 'Odometer', value: vehicle?.odometer || vehicle?.kilometer || '40.120 km', isMono: true },
-    { label: 'Bahan Bakar', value: vehicle?.bahan_bakar || vehicle?.fuel || 'Bensin' },
-    { label: 'Kapasitas Kursi', value: vehicle?.kapasitas_kursi || vehicle?.seats || '7' },
-    { label: 'Depo Penempatan', value: vehicle?.depo || vehicle?.pool || 'Depo Utama' },
->>>>>>> feature/frontend-brand-update
-    {
-      label: 'Tarif Sewa',
-      value: `Rp ${Number(vehicle?.tarif_per_hari || 350000).toLocaleString('id-ID')} / hari`,
-    },
-    { label: 'Nomor STNK', value: vehicle?.nomor_stnk || 'STNK-123456' },
-    { label: 'Status Operasional', value: statusBadgeLabel },
-    {
-      label: 'ID Sistem',
-      value: vehicle?.vehicle_id ? `#${vehicle.vehicle_id}` : '#AVZ-2022-09',
-      isMono: true,
-    },
-    {
-      label: 'Tanggal Terdaftar',
-      value: vehicle?.created_at
-        ? new Date(vehicle.created_at).toLocaleDateString('id-ID')
-        : '24 Okt 2026',
-    },
-  ]
-
-  const componentHealth = [
-    {
-      name: 'Mesin',
-      status: 'Sangat Baik',
-      score: 94,
-      desc: 'Kompresi silinder stabil, sensor O2 optimal, temperatur idle 88°C.',
-      color: 'bg-[#0F766E]',
-    },
-    {
-      name: 'Ban',
-      status: 'Kondisi Baik - Tekanan 33 PSI',
-      score: 82,
-      desc: 'Ketebalan tapak 6.2mm rata seluruh sisi. Rotasi ban berkala.',
-      color: 'bg-[#15803D]',
-    },
-    {
-      name: 'Rem',
-      status: 'Perlu Dicek Dalam 2.000 km',
-      score: 68,
-      desc: 'Tromol belakang mulai aus normal. Cakram depan dalam batas toleransi aman.',
-      color: 'bg-[#B45309]',
-    },
-    {
-      name: 'Oli Mesin',
-      status: 'Penggantian teratur',
-      score: 75,
-      desc: 'Viskositas sintetis terpantau jernih. Sisa estimasi pakai aman.',
-      color: 'bg-[#0F766E]',
-    },
-  ]
-
-  const serviceHistory = [
-    {
-      date: '15 Jun 2026',
-      type: 'Ganti Kampas Rem & Tune Up',
-      odometer: '40.120 km',
-      workshop: 'AutoCare Kenjeran',
-      cost: 'Rp 1.450.000',
-    },
-    {
-      date: '12 Jan 2026',
-      type: 'Servis Berkala 30.000 km',
-      odometer: '30.050 km',
-      workshop: 'Bengkel Resmi Mitra',
-      cost: 'Rp 980.000',
-    },
-  ]
+  const specs = vehicle
+    ? [
+        { label: 'Nomor Polisi', value: vehicle.plat_nomor || '-', isMono: true },
+        {
+          label: 'Tahun Pembuatan',
+          value: vehicle.tahun ? String(vehicle.tahun) : '-',
+        },
+        { label: 'Warna Bodi', value: vehicle.warna || '-' },
+        { label: 'Merk Kendaraan', value: vehicle.merk || '-' },
+        { label: 'Tipe / Model', value: vehicle.tipe || '-' },
+        {
+          label: 'Tarif Sewa',
+          value: `Rp ${Number(vehicle.tarif_per_hari || 0).toLocaleString('id-ID')} / hari`,
+        },
+        { label: 'Nomor STNK', value: vehicle.nomor_stnk || '-' },
+        { label: 'Status Operasional', value: statusBadgeLabel },
+        {
+          label: 'ID Sistem',
+          value: `#${vehicle.vehicle_id}`,
+          isMono: true,
+        },
+        {
+          label: 'Tanggal Terdaftar',
+          value: vehicle.created_at
+            ? new Date(vehicle.created_at).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })
+            : '-',
+        },
+      ]
+    : []
 
   return (
     <div className="flex min-h-screen w-full flex-col items-start bg-[#F5F7FA]">
       <Header
         greeting="Detail Armada"
-        subtitle={`${vehicleName} • ${vehiclePlate}`}
+        subtitle={vehicle ? `${vehicleName} • ${vehiclePlate}` : 'Informasi Armada'}
         showSearch={false}
         showAction={false}
       />
@@ -312,34 +246,17 @@ export default function Detail() {
             </Link>
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
               <h2 className="font-plusJakartaSans text-2xl font-bold tracking-tight text-[#111D23] sm:text-[26px]">
-                Detail Kendaraan — {vehicleName}
+                {vehicle ? `Detail Kendaraan — ${vehicleName}` : 'Detail Kendaraan'}
               </h2>
-              <StatusBadge status={statusBadgeLabel} variant={statusBadgeVariant} size="md" />
+              {vehicle && <StatusBadge status={statusBadgeLabel} variant={statusBadgeVariant} size="md" />}
             </div>
             <p className="font-plusJakartaSans text-xs text-[#47607E] sm:text-sm">
-              Informasi lengkap spesifikasi teknis, data Supabase, galeri R2, dan kontrol operasional.
+              Informasi lengkap spesifikasi teknis, data Supabase, galeri R2, dan kontrol operasional armada.
             </p>
           </div>
 
-          {/* Quick Vehicle Switcher & Action Buttons */}
+          {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Quick Switch Dropdown */}
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="vehicle-select" className="sr-only">Pilih Unit Kendaraan</label>
-              <select
-                id="vehicle-select"
-                value={activeVehicle.id}
-                onChange={(e) => handleSwitchVehicle(e.target.value)}
-                className="h-9 rounded-lg border border-[#DDEAF2] bg-white px-3 font-plusJakartaSans text-xs font-medium text-[#17324D] shadow-xs outline-none focus:border-[#0F766E]"
-              >
-                {vehiclesData.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name} ({v.plate})
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <button
               type="button"
               onClick={handlePrint}
@@ -378,7 +295,7 @@ export default function Detail() {
               </svg>
               <span>Buat Rental Baru</span>
             </Link>
-            {vehicleId && (
+            {vehicle && (
               <button
                 type="button"
                 disabled={isDeleting}
@@ -401,7 +318,7 @@ export default function Detail() {
           </div>
         )}
 
-        {/* Loading / Error States */}
+        {/* Loading / Error / Content States */}
         {isLoading ? (
           <div className="flex h-64 w-full flex-col items-center justify-center rounded-xl border border-[#DDEAF2] bg-white">
             <svg
@@ -428,18 +345,36 @@ export default function Detail() {
               Memuat detail kendaraan #{vehicleId}...
             </p>
           </div>
-        ) : errorMsg ? (
-          <div className="w-full rounded-xl border border-[#FECDD3] bg-[#FFF1F2] p-6 text-center text-[#BA1A1A]">
-            <p className="font-plusJakartaSans text-base font-bold">{errorMsg}</p>
-            <p className="mt-1 font-plusJakartaSans text-xs text-[#991B1B]">
-              Periksa ID kendaraan atau kembali ke daftar armada.
+        ) : errorMsg || !vehicle ? (
+          <div className="flex w-full flex-col items-center justify-center rounded-xl border border-[#FECDD3] bg-[#FFF1F2] p-8 text-center text-[#BA1A1A]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFE4E6] text-[#BA1A1A]">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <p className="mt-3 font-plusJakartaSans text-base font-bold text-[#111D23]">
+              {errorMsg || 'Kendaraan Tidak Ditemukan'}
             </p>
-            <Link
-              to="/kendaraan"
-              className="mt-4 inline-block rounded-lg bg-[#0F766E] px-4 py-2 text-xs font-bold text-white hover:bg-[#0D655E]"
-            >
-              Kembali ke Daftar Armada
-            </Link>
+            <p className="mt-1 max-w-md font-plusJakartaSans text-xs text-[#47607E]">
+              Data unit armada yang Anda cari tidak tersedia di database atau koneksi server terputus.
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={loadVehicleDetail}
+                className="rounded-lg bg-[#0F766E] px-4 py-2 font-plusJakartaSans text-xs font-bold text-white shadow-xs hover:bg-[#0D655E] cursor-pointer"
+              >
+                Coba Lagi
+              </button>
+              <Link
+                to="/kendaraan"
+                className="rounded-lg border border-[#C7D6E3] bg-white px-4 py-2 font-plusJakartaSans text-xs font-bold text-[#17324D] shadow-xs hover:bg-[#F8FAFC]"
+              >
+                Kembali ke Daftar Armada
+              </Link>
+            </div>
           </div>
         ) : (
           <>
@@ -474,17 +409,11 @@ export default function Detail() {
                           {label}
                         </span>
                         <span
-<<<<<<< HEAD
-                          className={`mt-1.5 font-semibold text-[#263238] ${isMono
+                          className={`mt-1.5 font-semibold text-[#263238] ${
+                            isMono
                               ? 'font-liberationMono text-xs'
                               : 'font-plusJakartaSans text-xs'
-                            }`}
-=======
-                          className={`mt-1.5 font-semibold text-[#263238] ${isMono
-                            ? 'font-liberationMono text-xs'
-                            : 'font-plusJakartaSans text-xs'
-                            }`}
->>>>>>> feature/frontend-brand-update
+                          }`}
                         >
                           {value}
                         </span>
@@ -493,71 +422,49 @@ export default function Detail() {
                   </div>
 
                   {/* Kontrol Status Cepat (PUT /vehicle/{id}) */}
-                  {vehicleId && (
-                    <div className="flex w-full flex-wrap items-center gap-2 rounded-lg border border-[#DDEAF2] bg-[#F8FAFC] p-3 text-xs">
-                      <span className="font-semibold text-[#17324D]">
-                        Ubah Status Armada:
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          disabled={isUpdatingStatus || vehicleStatus === 'Available'}
-                          onClick={() => handleStatusChange('Available')}
-<<<<<<< HEAD
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'Available'
-                              ? 'bg-[#DCFCE7] text-[#15803D]'
-                              : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
-=======
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'Available'
+                  <div className="flex w-full flex-wrap items-center gap-2 rounded-lg border border-[#DDEAF2] bg-[#F8FAFC] p-3 text-xs">
+                    <span className="font-semibold text-[#17324D]">
+                      Ubah Status Armada:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={isUpdatingStatus || vehicleStatus === 'Available'}
+                        onClick={() => handleStatusChange('Available')}
+                        className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${
+                          vehicleStatus === 'Available'
                             ? 'bg-[#DCFCE7] text-[#15803D]'
                             : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
->>>>>>> feature/frontend-brand-update
-                        >
-                          Tersedia
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isUpdatingStatus || vehicleStatus === 'Rented'}
-                          onClick={() => handleStatusChange('Rented')}
-<<<<<<< HEAD
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'Rented'
-                              ? 'bg-[#DBEAFE] text-[#2563EB]'
-                              : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
-=======
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'Rented'
+                        }`}
+                      >
+                        Tersedia
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isUpdatingStatus || vehicleStatus === 'Rented'}
+                        onClick={() => handleStatusChange('Rented')}
+                        className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${
+                          vehicleStatus === 'Rented'
                             ? 'bg-[#DBEAFE] text-[#2563EB]'
                             : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
->>>>>>> feature/frontend-brand-update
-                        >
-                          Disewa
-                        </button>
-                        <button
-                          type="button"
-                          disabled={
-                            isUpdatingStatus || vehicleStatus === 'In Maintenance'
-                          }
-                          onClick={() => handleStatusChange('In Maintenance')}
-<<<<<<< HEAD
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'In Maintenance'
-                              ? 'bg-[#FEF3C7] text-[#B45309]'
-                              : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
-=======
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'In Maintenance'
+                        }`}
+                      >
+                        Disewa
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isUpdatingStatus || vehicleStatus === 'In Maintenance'}
+                        onClick={() => handleStatusChange('In Maintenance')}
+                        className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${
+                          vehicleStatus === 'In Maintenance'
                             ? 'bg-[#FEF3C7] text-[#B45309]'
                             : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
->>>>>>> feature/frontend-brand-update
-                        >
-                          Maintenance
-                        </button>
-                      </div>
+                        }`}
+                      >
+                        Maintenance
+                      </button>
                     </div>
-                  )}
+                  </div>
 
                   {/* Action Buttons Row */}
                   <div className="flex w-full flex-wrap items-center gap-2.5 pt-2">
@@ -595,82 +502,74 @@ export default function Detail() {
                   </div>
                 </div>
 
-                {/* Right Column: Vehicle Image & Badges & R2 Gallery */}
+                {/* Right Column: Real Cloudflare R2 Gallery & Photo Management */}
                 <div className="flex flex-col gap-3">
-                  <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-[#DDEAF2] bg-[#E9F6FD]">
-                    <img
-                      src={activePhotoUrl}
-                      className="h-64 w-full object-cover sm:h-72"
-                      alt={vehicleName}
-                      onError={(e) => {
-                        e.currentTarget.src = DEFAULT_FALLBACK_IMAGE
-                      }}
-                    />
-                    <div className="absolute left-3 top-3">
-                      <StatusBadge status={statusBadgeLabel} variant={statusBadgeVariant} />
-                    </div>
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
-                      <span className="rounded-md bg-[#111D23]/80 px-2.5 py-1 font-plusJakartaSans text-[11px] font-medium text-white backdrop-blur-xs">
-                        ID: #{vehicle?.vehicle_id || 'AVZ-2022-09'}
+                  {/* Photo Upload & R2 Management Bar */}
+                  <div className="flex items-center justify-between rounded-xl border border-[#DDEAF2] bg-[#F8FAFC] p-3">
+                    <div>
+                      <span className="font-plusJakartaSans text-xs font-bold text-[#111D23]">
+                        Dokumentasi Foto Armada
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-md bg-[#0F766E]/90 px-2.5 py-1 font-plusJakartaSans text-[11px] font-medium text-white backdrop-blur-xs">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        {vehicle?.nomor_stnk ? 'STNK Terdata' : 'Dokumen Lengkap'}
-                      </span>
+                      <p className="font-plusJakartaSans text-[11px] text-[#47607E]">
+                        Tersimpan di Cloudflare R2 ({photos.length} foto)
+                      </p>
                     </div>
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#0F766E] px-3 py-1.5 font-plusJakartaSans text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#0D655E]">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      <span>{isUploadingPhoto ? 'Mengunggah...' : 'Unggah Foto'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingPhoto}
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
 
-                  {/* Thumbnail Galeri Foto Cloudflare R2 & Upload Foto */}
-                  {vehicleId && (
-                    <div className="flex flex-col gap-2 rounded-xl border border-[#DDEAF2] bg-white p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="font-plusJakartaSans text-xs font-bold text-[#111D23]">
-                          Galeri Foto (Cloudflare R2)
-                        </span>
-                        <label className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-semibold text-[#0F766E] hover:underline">
-                          <span>{isUploadingPhoto ? 'Mengunggah...' : '+ Unggah Foto'}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            disabled={isUploadingPhoto}
-                            onChange={handlePhotoUpload}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
+                  {/* Real R2 Photo Gallery Slider */}
+                  <VehicleGallery
+                    images={galleryImages}
+                    vehicleName={vehicleName}
+                    plate={vehiclePlate}
+                    category={`${vehicle.merk} ${vehicle.tipe}`}
+                    statusBadge={
+                      <StatusBadge
+                        status={statusBadgeLabel}
+                        variant={statusBadgeVariant}
+                        size="sm"
+                      />
+                    }
+                  />
 
-                      <div className="flex flex-wrap items-center gap-2">
+                  {/* Thumbnail Delete Actions */}
+                  {photos.length > 0 && (
+                    <div className="flex flex-col gap-1.5 rounded-xl border border-[#DDEAF2] bg-white p-3">
+                      <span className="font-plusJakartaSans text-[11px] font-bold uppercase tracking-wider text-[#47607E]">
+                        Kelola Foto Tersimpan ({photos.length})
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
                         {photos.map((p, idx) => (
                           <div
                             key={p.photo_id || idx}
-                            className="group relative h-16 w-16 overflow-hidden rounded-lg border border-[#C7D6E3]"
+                            className="group relative h-14 w-16 overflow-hidden rounded-lg border border-[#C7D6E3]"
                           >
                             <img
                               src={p.photo_url}
                               alt={`Foto ${idx + 1}`}
-                              onClick={() => setSelectedPhotoIndex(idx)}
-<<<<<<< HEAD
-                              className={`h-full w-full object-cover cursor-pointer ${selectedPhotoIndex === idx
-                                  ? 'ring-2 ring-[#0F766E]'
-                                  : 'opacity-80 hover:opacity-100'
-                                }`}
-=======
-                              className={`h-full w-full object-cover cursor-pointer ${selectedPhotoIndex === idx
-                                ? 'ring-2 ring-[#0F766E]'
-                                : 'opacity-80 hover:opacity-100'
-                                }`}
->>>>>>> feature/frontend-brand-update
+                              className="h-full w-full object-cover"
                             />
                             {p.photo_id && (
                               <button
                                 type="button"
-                                title="Hapus foto ini"
+                                title="Hapus foto ini dari R2"
                                 onClick={() => handlePhotoDelete(p.photo_id)}
-                                className="absolute right-0.5 top-0.5 hidden rounded bg-red-600 p-0.5 text-white group-hover:block"
+                                className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
                               >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-red-400">
                                   <line x1="18" y1="6" x2="6" y2="18" />
                                   <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
@@ -681,211 +580,63 @@ export default function Detail() {
                       </div>
                     </div>
                   )}
-<<<<<<< HEAD
-=======
-
-                  {/* Galeri visual dari desain frontend tetap dipertahankan.
-                      Foto kendaraan aktual dari backend tetap tersedia di galeri R2 di atas. */}
-                  {activeVehicle && (
-                    <VehicleGallery
-                      images={activeVehicle.images}
-                      vehicleName={activeVehicle.name}
-                      plate={activeVehicle.plate}
-                      category={activeVehicle.category}
-                      statusBadge={
-                        <StatusBadge
-                          status={activeVehicle.status}
-                          variant={activeVehicle.statusVariant}
-                          size="sm"
-                        />
-                      }
-                    />
-                  )}
->>>>>>> feature/frontend-brand-update
-                </div >
-              </div >
-            </div >
-
-    {/* Two-Column Detail Section: Component Health & Service History */ }
-    < div className = "grid w-full grid-cols-1 items-start gap-6 xl:grid-cols-2" >
-      {/* Component Health Card */ }
-      < div className = "flex flex-col gap-5 rounded-xl border border-[#DDEAF2] bg-white p-5 shadow-xs sm:p-6" >
-        <div className="flex items-center justify-between border-b border-[#E3F0F8] pb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#E3F0F8] text-[#0F766E]">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
-            </div>
-            <div>
-              <h4 className="font-plusJakartaSans text-base font-bold text-[#263238]">
-                Status Kesehatan Komponen
-              </h4>
-              <p className="font-plusJakartaSans text-[11px] text-[#47607E]">
-                Telemetri real-time On-Board Diagnostic (OBD-II)
-              </p>
-            </div>
-          </div>
-          <span className="rounded-md bg-[#E9F6FD] px-2.5 py-1 font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
-            Update otomatis
-          </span>
-        </div>
-
-  {/* Health Bars */ }
-  <div className="flex flex-col gap-4">
-    {componentHealth.map((item) => (
-      <div key={item.name} className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-plusJakartaSans font-semibold text-[#263238]">
-            {item.name}
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="font-plusJakartaSans text-[11px] text-[#47607E]">
-              {item.status}
-            </span>
-            <span className="font-plusJakartaSans font-bold text-[#0F766E]">
-              {item.score}%
-            </span>
-          </div>
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-[#DDEAF2]">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${item.color}`}
-            style={{ width: `${item.score}%` }}
-          />
-        </div>
-        <p className="font-plusJakartaSans text-[11px] text-[#64748B]">
-          {item.desc}
-        </p>
-      </div>
-    ))}
-  </div>
-
-  {/* Overall Score Banner */ }
-  <div className="mt-2 flex items-center justify-between rounded-lg border border-[#DDEAF2] bg-[#E9F6FD] p-3.5">
-    <div className="flex items-center gap-2.5">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#0F766E]" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="m9 12 2 2 4-4" />
-      </svg>
-      <span className="font-plusJakartaSans text-xs font-semibold text-[#263238]">
-        Skor Kelayakan Operasi Keseluruhan
-      </span>
-    </div>
-    <span className="font-plusJakartaSans text-base font-bold text-[#0F766E]">
-<<<<<<< HEAD
-  88.5 / 100
-=======
-                    {activeVehicle?.healthPercent ?? 88.5} / 100
->>>>>>> feature/frontend-brand-update
-                  </span >
-                </div >
-              </div >
-
-    {/* Service History & Maintenance Card */ }
-    < div className = "flex flex-col gap-5 rounded-xl border border-[#DDEAF2] bg-white p-5 shadow-xs sm:p-6" >
-      <div className="flex items-center justify-between border-b border-[#E3F0F8] pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#E3F0F8] text-[#0F766E]">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-            </svg>
-          </div>
-          <div>
-            <h4 className="font-plusJakartaSans text-base font-bold text-[#263238]">
-              Jadwal Servis &amp; Riwayat
-            </h4>
-            <p className="font-plusJakartaSans text-[11px] text-[#47607E]">
-              Histori pemeliharaan dan inspeksi armada
-            </p>
-          </div>
-        </div>
-        <Link
-          to="/maintenance"
-          className="inline-flex items-center gap-1 font-plusJakartaSans text-xs font-semibold text-[#0F766E] transition-colors hover:text-[#0B625C]"
-        >
-          <span>Lihat Semua</span>
-          <span aria-hidden="true">&rarr;</span>
-        </Link>
-      </div>
-
-<<<<<<< HEAD
-=======
-                {/* Next Service Alert dari tampilan frontend */}
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-[#DDEAF2] bg-[#E9F6FD] p-4">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-plusJakartaSans text-[11px] font-semibold uppercase tracking-wider text-[#0F766E]">
-                      Jadwal Servis Berkala Berikutnya
-                    </span>
-                    <span className="font-plusJakartaSans text-base font-bold text-[#263238]">
-                      {activeVehicle?.nextService || '18 Oktober 2026'}
-                    </span>
-                    <span className="font-plusJakartaSans text-xs text-[#47607E]">
-                      Servis Berkala di Bengkel Resmi {activeVehicle?.depot || ''}
-                    </span>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-[#D1E4FF] px-3 py-1 font-plusJakartaSans text-xs font-semibold text-[#001D36]">
-                    Jadwal berikutnya
-                  </span>
                 </div>
+              </div>
+            </div>
 
->>>>>>> feature/frontend-brand-update
-  {/* Condition Note */ }
-  <div className="flex items-start gap-2.5 rounded-lg border border-[#DDEAF2] bg-[#F8FAFC] p-3 text-xs text-[#3E4947]">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[#0F766E]" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
-    <div>
-      <span className="font-semibold text-[#17324D]">Catatan Pemeliharaan: </span>
-      {vehicle?.deskripsi || 'Unit dalam kondisi siap pakai, rem dan sistem bahan bakar prima.'}
-    </div>
-  </div>
+            {/* Information Notice for IoT Telematics & Maintenance Modules */}
+            <div className="grid w-full grid-cols-1 items-start gap-6 xl:grid-cols-2">
+              <div className="flex flex-col gap-3 rounded-xl border border-[#DDEAF2] bg-white p-5 shadow-xs sm:p-6">
+                <div className="flex items-center gap-3 border-b border-[#E3F0F8] pb-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E3F0F8] text-[#0F766E]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-plusJakartaSans text-sm font-bold text-[#263238]">
+                      Status Telemetri &amp; Kesehatan OBD-II
+                    </h4>
+                    <p className="font-plusJakartaSans text-[11px] text-[#47607E]">
+                      Sensor kecepatan, bahan bakar, dan diagnostik mesin
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-lg bg-[#F8FAFC] p-3.5 text-xs text-[#47607E]">
+                  <p className="font-semibold text-[#17324D]">Modul Telematika IoT:</p>
+                  <p className="mt-1 leading-relaxed">
+                    Telemetri OBD-II terintegrasi akan menampilkan kondisi mesin, tekanan ban, dan oli real-time setelah modul sensor GPS/telematika diaktifkan pada armada ini.
+                  </p>
+                </div>
+              </div>
 
-  {/* Service History Table */ }
-  <div className="flex flex-col gap-2">
-    <span className="font-plusJakartaSans text-[11px] font-bold uppercase tracking-wider text-[#47607E]">
-      Entri Servis Berkala
-    </span>
-    <div className="overflow-x-auto rounded-lg border border-[#DDEAF2]">
-      <table className="w-full text-left font-plusJakartaSans text-xs">
-        <thead className="border-b border-[#E3F0F8] bg-[#F8FAFC] text-[11px] font-bold uppercase tracking-wider text-[#47607E]">
-          <tr>
-            <th className="px-3.5 py-2.5">Tanggal</th>
-            <th className="px-3.5 py-2.5">Jenis Servis</th>
-            <th className="px-3.5 py-2.5">Bengkel</th>
-            <th className="px-3.5 py-2.5 text-right">Biaya</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[#E3F0F8] text-[#263238]">
-          {serviceHistory.map((item, idx) => (
-            <tr key={idx} className="hover:bg-[#F8FAFC]">
-              <td className="px-3.5 py-2.5 font-liberationMono whitespace-nowrap">
-                {item.date}
-              </td>
-              <td className="px-3.5 py-2.5">
-                <p className="font-semibold text-[#17324D]">{item.type}</p>
-                <p className="text-[11px] text-[#64748B]">Odo: {item.odometer}</p>
-              </td>
-              <td className="px-3.5 py-2.5 text-[#47607E] whitespace-nowrap">
-                {item.workshop}
-              </td>
-              <td className="px-3.5 py-2.5 text-right font-liberationMono font-semibold text-[#0F766E] whitespace-nowrap">
-                {item.cost}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-              </div >
-            </div >
+              <div className="flex flex-col gap-3 rounded-xl border border-[#DDEAF2] bg-white p-5 shadow-xs sm:p-6">
+                <div className="flex items-center gap-3 border-b border-[#E3F0F8] pb-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E3F0F8] text-[#0F766E]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-plusJakartaSans text-sm font-bold text-[#263238]">
+                      Jadwal Servis &amp; Pemeliharaan
+                    </h4>
+                    <p className="font-plusJakartaSans text-[11px] text-[#47607E]">
+                      Histori servis bengkel resmi dan kartu perawatan
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-lg bg-[#F8FAFC] p-3.5 text-xs text-[#47607E]">
+                  <p className="font-semibold text-[#17324D]">Riwayat Pemeliharaan:</p>
+                  <p className="mt-1 leading-relaxed">
+                    {vehicle.deskripsi || 'Unit dalam kondisi siap beroperasi. Riwayat transaksi bengkel akan tercatat secara otomatis pada modul Maintenance.'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </>
-        )
-}
-      </div >
-    </div >
+        )}
+      </div>
+    </div>
   )
 }

@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
-import GoogleMapsView from '../components/GoogleMapsView'
 import { hasValidDestination, openGoogleMapsRoadmap } from '../utils/googleMaps'
 
 // Data armada & destinasi rental (Data simulasi/demo untuk pemantauan operasional)
@@ -153,12 +154,61 @@ const defaultVehicles = [
   },
 ]
 
+// Surabaya center
+const SURABAYA_CENTER = [-7.2906, 112.7347]
+const DEFAULT_ZOOM = 12
+
+// Build a DivIcon with vehicle plate label
+function createVehicleIcon(plate, isMoving, isSelected) {
+  const bg = isSelected ? '#0F766E' : isMoving ? '#1D4ED8' : '#64748B'
+  const html = `
+    <div style="
+      background:${bg};
+      color:#fff;
+      border:2px solid #fff;
+      border-radius:6px;
+      padding:3px 7px;
+      font-size:11px;
+      font-weight:700;
+      font-family:monospace;
+      white-space:nowrap;
+      box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      position:relative;
+    ">
+      ${plate}
+      <div style="
+        position:absolute;
+        bottom:-7px;
+        left:50%;
+        transform:translateX(-50%);
+        width:0;height:0;
+        border-left:5px solid transparent;
+        border-right:5px solid transparent;
+        border-top:7px solid ${bg};
+      "></div>
+    </div>
+  `
+  return L.divIcon({
+    html,
+    className: '',
+    iconAnchor: [32, 36],
+    iconSize: null,
+  })
+}
+
 export default function Lokasi() {
   const [filter, setFilter] = useState('all') // 'all' | 'moving' | 'parked'
   const [searchQuery, setSearchQuery] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
   const [selectedPin, setSelectedPin] = useState('brio')
   const [locationFeedback, setLocationFeedback] = useState('')
+  const [mapLayer, setMapLayer] = useState('roadmap') // 'roadmap' | 'satellite'
+
+  // Leaflet refs
+  const mapContainerRef = useRef(null)
+  const mapInstanceRef = useRef(null)
+  const layersRef = useRef({ osm: null, esri: null })
+  const markersRef = useRef({}) // keyed by vehicle id
 
   const vehicles = defaultVehicles
 
@@ -213,6 +263,106 @@ export default function Lokasi() {
     })
   }
 
+  // ── Initialize Leaflet map once ────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstanceRef.current) return
+
+    const map = L.map(mapContainerRef.current, {
+      center: SURABAYA_CENTER,
+      zoom: DEFAULT_ZOOM,
+      zoomControl: false,
+      attributionControl: true,
+    })
+
+    // OSM roadmap layer (default)
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    })
+
+    // Esri World Imagery satellite layer
+    const esriLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 19,
+      }
+    )
+
+    osmLayer.addTo(map)
+    layersRef.current = { osm: osmLayer, esri: esriLayer }
+    mapInstanceRef.current = map
+
+    return () => {
+      map.remove()
+      mapInstanceRef.current = null
+      layersRef.current = { osm: null, esri: null }
+      markersRef.current = {}
+    }
+  }, [])
+
+  // ── Switch tile layer when mapLayer state changes ─────────────────────────
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    const { osm, esri } = layersRef.current
+    if (!map || !osm || !esri) return
+
+    if (mapLayer === 'satellite') {
+      if (map.hasLayer(osm)) map.removeLayer(osm)
+      if (!map.hasLayer(esri)) esri.addTo(map)
+    } else {
+      if (map.hasLayer(esri)) map.removeLayer(esri)
+      if (!map.hasLayer(osm)) osm.addTo(map)
+    }
+  }, [mapLayer])
+
+  // ── Create / update vehicle markers whenever vehicles change ──────────────
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map) return
+
+    // Remove old markers not in current vehicle list
+    const currentIds = new Set(vehicles.map((v) => v.id))
+    Object.keys(markersRef.current).forEach((id) => {
+      if (!currentIds.has(id)) {
+        map.removeLayer(markersRef.current[id])
+        delete markersRef.current[id]
+      }
+    })
+
+    // Add or update markers
+    vehicles.forEach((v) => {
+      if (!v.coords) return
+      const isSelected = v.id === selectedPin
+      const icon = createVehicleIcon(v.plate, v.isMoving, isSelected)
+
+      if (markersRef.current[v.id]) {
+        markersRef.current[v.id].setIcon(icon)
+        markersRef.current[v.id].setLatLng([v.coords.lat, v.coords.lng])
+      } else {
+        const marker = L.marker([v.coords.lat, v.coords.lng], { icon })
+        marker.on('click', () => setSelectedPin(v.id))
+        marker.addTo(map)
+        markersRef.current[v.id] = marker
+      }
+    })
+  }, [vehicles, selectedPin])
+
+  // ── Pan map to selected vehicle ────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map || !activeVehicle?.coords) return
+    map.flyTo([activeVehicle.coords.lat, activeVehicle.coords.lng], 15, { duration: 0.8 })
+
+    // Refresh all marker icons to reflect selection
+    vehicles.forEach((v) => {
+      const marker = markersRef.current[v.id]
+      if (marker) {
+        marker.setIcon(createVehicleIcon(v.plate, v.isMoving, v.id === selectedPin))
+      }
+    })
+  }, [selectedPin, activeVehicle, vehicles])
+
   return (
     <div className="flex min-h-screen w-full flex-col items-start bg-[#F5F7FA]">
       <Header
@@ -232,7 +382,7 @@ export default function Lokasi() {
           <div className="flex flex-col items-start gap-1">
             <div className="flex items-center gap-1.5 text-xs text-[#47607E]">
               <span className="font-plusJakartaSans font-bold uppercase tracking-wider text-[#0F766E]">
-                Integrasi Google Maps &amp; Telematika Armada
+                Leaflet Map • OpenStreetMap &amp; Esri Satellite
               </span>
               <span className="text-[#94A3B8]">•</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 font-semibold text-[#B45309]">
@@ -244,7 +394,7 @@ export default function Lokasi() {
               Lokasi Armada &amp; Destinasi Rental
             </h2>
             <p className="max-w-2xl font-plusJakartaSans text-xs text-[#47607E] sm:text-sm">
-              Visualisasi posisi kendaraan dan tujuan penyewa via Google Maps interaktif (Roadmap &amp; Satelit) untuk pemantauan operasional armada.
+              Visualisasi posisi kendaraan dan tujuan penyewa via Leaflet interaktif (Peta Jalan &amp; Satelit) untuk pemantauan operasional armada.
             </p>
           </div>
 
@@ -318,16 +468,125 @@ export default function Lokasi() {
           </p>
         </div>
 
-        {/* Main Grid: Real Google Maps on Left, Fleet Telematics List on Right */}
+        {/* Main Grid: Leaflet Map Left, Fleet List Right */}
         <div className="grid w-full grid-cols-1 items-start gap-6 xl:grid-cols-[1.4fr_1fr]">
-          {/* Left Column: Interactive Google Maps Component & Telematics Stat Cards */}
+          {/* Left Column: Leaflet Map + Stats Cards */}
           <div className="flex flex-col gap-6">
-            {/* Google Maps Container Component */}
-            <GoogleMapsView
-              selectedVehicle={activeVehicle}
-            />
+            {/* Leaflet Map Container */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#DDEAF2] bg-white shadow-xs">
+              {/* Map Toolbar */}
+              <div className="absolute left-3 top-3 z-[500] flex items-center gap-1.5">
+                {/* Layer Switcher */}
+                <div className="flex items-center gap-1 rounded-xl border border-[#DDEAF2] bg-white/90 p-1 shadow-sm backdrop-blur-sm">
+                  <button
+                    type="button"
+                    onClick={() => setMapLayer('roadmap')}
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-plusJakartaSans text-xs font-semibold transition-all cursor-pointer ${
+                      mapLayer === 'roadmap'
+                        ? 'bg-[#0F766E] text-white shadow-xs'
+                        : 'text-[#47607E] hover:text-[#0F766E]'
+                    }`}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M3 15h18M9 3v18" />
+                    </svg>
+                    Peta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMapLayer('satellite')}
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-plusJakartaSans text-xs font-semibold transition-all cursor-pointer ${
+                      mapLayer === 'satellite'
+                        ? 'bg-[#0F766E] text-white shadow-xs'
+                        : 'text-[#47607E] hover:text-[#0F766E]'
+                    }`}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    Satelit
+                  </button>
+                </div>
+              </div>
 
-            {/* 3 Rental Destination & Telematics Summary Cards */}
+              {/* Zoom Controls */}
+              <div className="absolute right-3 top-3 z-[500] flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => mapInstanceRef.current?.zoomIn()}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DDEAF2] bg-white/90 text-[#17324D] shadow-sm backdrop-blur-sm hover:bg-white hover:text-[#0F766E] transition-colors cursor-pointer font-bold text-base"
+                  aria-label="Zoom in"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => mapInstanceRef.current?.zoomOut()}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DDEAF2] bg-white/90 text-[#17324D] shadow-sm backdrop-blur-sm hover:bg-white hover:text-[#0F766E] transition-colors cursor-pointer font-bold text-base"
+                  aria-label="Zoom out"
+                >
+                  −
+                </button>
+              </div>
+
+              {/* Selected vehicle info overlay */}
+              {activeVehicle && (
+                <div className="absolute bottom-3 left-3 right-3 z-[500] flex items-center justify-between gap-3 rounded-xl border border-[#DDEAF2] bg-white/95 px-3.5 py-2.5 shadow-md backdrop-blur-sm">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <img
+                      src={activeVehicle.image}
+                      alt={activeVehicle.name}
+                      className="h-9 w-11 shrink-0 rounded-lg border border-[#DDEAF2] object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23E9F6FD"/></svg>`
+                      }}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate font-plusJakartaSans text-sm font-bold text-[#111D23]">
+                        {activeVehicle.name}
+                      </p>
+                      <p className="font-liberationMono text-[11px] font-semibold text-[#0F766E]">
+                        {activeVehicle.plate}
+                      </p>
+                      {activeVehicle.destination && (
+                        <p className="truncate font-plusJakartaSans text-[11px] text-[#47607E]">
+                          <span className="font-semibold text-[#0F766E]">Tujuan: </span>
+                          {activeVehicle.destination}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <StatusBadge status={activeVehicle.status} variant={activeVehicle.statusVariant} size="sm" />
+                    {hasValidDestination(activeVehicle) && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenGoogleMaps(activeVehicle)}
+                        className="flex items-center gap-1 rounded-lg border border-[#0F766E] bg-[#0F766E]/10 px-2.5 py-1 font-plusJakartaSans text-[11px] font-semibold text-[#0F766E] hover:bg-[#0F766E] hover:text-white transition-all cursor-pointer"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                        Buka Google Maps
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* The actual Leaflet map div */}
+              <div
+                ref={mapContainerRef}
+                style={{ height: '480px', width: '100%' }}
+                className="z-0"
+              />
+            </div>
+
+            {/* 3 Stat Cards */}
             <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="flex items-center gap-3.5 rounded-2xl border border-[#DDEAF2] bg-white p-4 shadow-xs">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E9F6FD] text-[#0F766E]">
@@ -383,7 +642,7 @@ export default function Lokasi() {
             </div>
           </div>
 
-          {/* Right Column: Fleet List (Interactive - Click centers map) */}
+          {/* Right Column: Fleet List */}
           <div className="flex flex-col gap-4 rounded-2xl border border-[#DDEAF2] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between border-b border-[#E3F0F8] pb-3">
               <div>
@@ -391,7 +650,7 @@ export default function Lokasi() {
                   Daftar Armada &amp; Tujuan Rental
                 </h3>
                 <p className="font-plusJakartaSans text-xs text-[#47607E]">
-                  Pilih kendaraan untuk menampilkan lokasinya di Google Maps
+                  Pilih kendaraan untuk menampilkan lokasinya di peta
                 </p>
               </div>
               <span className="font-plusJakartaSans text-[11px] font-medium text-[#64748B]">

@@ -2,10 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
-<<<<<<< HEAD
-=======
-import { vehiclesData } from '../data/vehicles'
->>>>>>> feature/frontend-brand-update
 import {
   createVehicle,
   fetchVehicles,
@@ -15,33 +11,6 @@ import {
 
 const DEFAULT_FALLBACK_IMAGE =
   '/Ab6axua7enflctrgawzxbuaxw0vvkga8l5ontrgzgjdvwbsjdgrahbmateoa2kjg_tqafywm4gthvmwr9uislxzo3obancdzvtkywbhzlbku9bx1itb91dtst0c0lwlhzygcbhu0raeac8qxpb1biaarqokmfdgs64rfup0azjbrngwrwnvsydqr9normwepupyn9ikntq3hv_p4og1u0tiap7gloxe0gi1hxasrubwyy3zahbczsq.png'
-<<<<<<< HEAD
-=======
-
-
-// Data contoh dari frontend tetap dipertahankan sebagai fallback saat backend tidak dapat diakses.
-// Data ini tidak menggantikan data live ketika API berhasil dimuat.
-const mapSampleVehicle = (vehicle) => ({
-  ...vehicle,
-  vehicle_id: vehicle.id,
-  merk: vehicle.name?.split(' ')[0] || vehicle.name || 'Kendaraan',
-  tipe: vehicle.name?.split(' ').slice(1).join(' ') || '',
-  plat_nomor: vehicle.plate || '-',
-  tahun: Number(String(vehicle.year || '').replace(/\\D/g, '')) || null,
-  status:
-    vehicle.status === 'Tersedia'
-      ? 'Available'
-      : vehicle.status === 'Disewa'
-        ? 'Rented'
-        : 'In Maintenance',
-  tarif_per_hari: vehicle.tarif_per_hari || 0,
-  warna: vehicle.warna || '',
-  deskripsi: vehicle.infoBoxDesc || vehicle.deskripsi || '',
-  vehicle_photos: vehicle.images?.[0]?.url
-    ? [{ photo_url: vehicle.images[0].url }]
-    : [],
-})
->>>>>>> feature/frontend-brand-update
 
 export default function Kendaraan() {
   const [vehicles, setVehicles] = useState([])
@@ -81,11 +50,7 @@ export default function Kendaraan() {
     } catch (err) {
       console.error('Error fetching vehicles:', err)
       setApiError(err.message || 'Gagal memuat data kendaraan dari backend.')
-<<<<<<< HEAD
-=======
-      // Fallback frontend dipakai hanya ketika request backend gagal.
-      setVehicles(vehiclesData.map(mapSampleVehicle))
->>>>>>> feature/frontend-brand-update
+      setVehicles([])
     } finally {
       setIsLoading(false)
     }
@@ -135,17 +100,10 @@ export default function Kendaraan() {
       const q = searchQuery.trim().toLowerCase()
       const matchesSearch =
         !q ||
-<<<<<<< HEAD
-        (v.merk && v.merk.toLowerCase().includes(q)) ||
-        (v.tipe && v.tipe.toLowerCase().includes(q)) ||
-        (v.plat_nomor && v.plat_nomor.toLowerCase().includes(q)) ||
-        (v.deskripsi && v.deskripsi.toLowerCase().includes(q))
-=======
         String(v.merk || '').toLowerCase().includes(q) ||
         String(v.tipe || '').toLowerCase().includes(q) ||
         String(v.plat_nomor || '').toLowerCase().includes(q) ||
         String(v.deskripsi || '').toLowerCase().includes(q)
->>>>>>> feature/frontend-brand-update
 
       return matchesStatus && matchesSearch
     })
@@ -173,7 +131,17 @@ export default function Kendaraan() {
 
   const handlePhotoChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedPhoto(e.target.files[0])
+      const file = e.target.files[0]
+      if (file.size > 5 * 1024 * 1024) {
+        setModalFeedback({
+          type: 'error',
+          message: 'Ukuran foto maksimal 5MB.',
+        })
+        e.target.value = ''
+        setSelectedPhoto(null)
+        return
+      }
+      setSelectedPhoto(file)
     }
   }
 
@@ -269,14 +237,8 @@ export default function Kendaraan() {
       year: 'numeric',
     }).format(new Date())
   }, [])
-<<<<<<< HEAD
-=======
 
   const countSemua = vehicles.length
-  const countTersedia = vehicles.filter((v) => v.status === 'Tersedia').length
-  const countDisewa = vehicles.filter((v) => v.status === 'Disewa').length
-  const countMaintenance = vehicles.filter((v) => v.status === 'Maintenance').length
->>>>>>> feature/frontend-brand-update
 
   return (
     <div className="flex min-h-screen w-full flex-col items-start bg-[#F5F7FA]">
@@ -522,7 +484,6 @@ export default function Kendaraan() {
                 const statusType = isAvailable
                   ? 'success'
                   : isRented
-<<<<<<< HEAD
                     ? 'info'
                     : 'warning'
                 const statusLabel = isAvailable
@@ -530,25 +491,12 @@ export default function Kendaraan() {
                   : isRented
                     ? 'Sedang Disewa'
                     : 'Perlu Servis'
-=======
-                    ? 'info'
-                    : 'warning'
-                const statusLabel = isAvailable
-                  ? 'Tersedia'
-                  : isRented
-                    ? 'Sedang Disewa'
-                    : 'Perlu Servis'
->>>>>>> feature/frontend-brand-update
 
                 const vehicleName = `${vehicle.merk} ${vehicle.tipe}`
 
                 return (
                   <div
-<<<<<<< HEAD
-                    key={vehicle.vehicle_id}
-=======
                     key={vehicle.vehicle_id ?? vehicle.id}
->>>>>>> feature/frontend-brand-update
                     className="flex flex-col justify-between overflow-hidden rounded-xl border border-[#E3F0F8] bg-white shadow-xs transition-shadow hover:shadow-md"
                   >
                     {/* Gambar Unit & Badges */}
@@ -606,11 +554,7 @@ export default function Kendaraan() {
                         <div className="flex items-start gap-2 rounded-lg bg-[#E9F6FD] p-2.5">
                           <p className="line-clamp-2 font-plusJakartaSans text-[12px] leading-snug text-[#3E4947]">
                             {vehicle.deskripsi ||
-<<<<<<< HEAD
                               `Kondisi prima siap operasional. STNK: ${vehicle.nomor_stnk || 'Aktif'
-=======
-                              `Kondisi prima siap operasional. STNK: ${vehicle.nomor_stnk || 'Aktif'
->>>>>>> feature/frontend-brand-update
                               }.`}
                           </p>
                         </div>
@@ -697,17 +641,10 @@ export default function Kendaraan() {
                   aria-current={activePage === page ? 'page' : undefined}
                   aria-label={`Halaman ${page}`}
                   onClick={() => setActivePage(page)}
-<<<<<<< HEAD
                   className={`flex h-8 w-8 items-center justify-center rounded-lg font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activePage === page
                       ? 'bg-[#0F766E] text-white'
                       : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
                     }`}
-=======
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activePage === page
-                      ? 'bg-[#0F766E] text-white'
-                      : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
-                    }`}
->>>>>>> feature/frontend-brand-update
                 >
                   {page}
                 </button>
@@ -767,17 +704,10 @@ export default function Kendaraan() {
 
             {modalFeedback.message && (
               <div
-<<<<<<< HEAD
                 className={`mt-4 rounded-lg p-3 text-xs font-semibold ${modalFeedback.type === 'success'
                     ? 'border border-[#BFE8E2] bg-[#F0FBF9] text-[#0F625C]'
                     : 'border border-[#FECDD3] bg-[#FFF1F2] text-[#BA1A1A]'
                   }`}
-=======
-                className={`mt-4 rounded-lg p-3 text-xs font-semibold ${modalFeedback.type === 'success'
-                    ? 'border border-[#BFE8E2] bg-[#F0FBF9] text-[#0F625C]'
-                    : 'border border-[#FECDD3] bg-[#FFF1F2] text-[#BA1A1A]'
-                  }`}
->>>>>>> feature/frontend-brand-update
               >
                 {modalFeedback.message}
               </div>

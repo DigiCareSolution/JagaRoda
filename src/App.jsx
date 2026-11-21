@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout, { NotFoundRedirect } from './layouts/AppLayout'
 import AdminLayout from './layouts/AdminLayout'
 import PublicLayout from './layouts/PublicLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const SignIn = lazy(() => import('./pages/SignIn'))
@@ -56,23 +57,31 @@ function App() {
             <Route path="signin" element={<SignIn />} />
             <Route path="signup" element={<SignUp />} />
           </Route>
-          <Route path="admin" element={<AdminLayout />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardAdmin />} />
-            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+
+          {/* Protected Admin Routes (Only Admin role allowed) */}
+          <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+            <Route path="admin" element={<AdminLayout />}>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardAdmin />} />
+              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            </Route>
           </Route>
-          <Route element={<AppLayout />}>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="kendaraan" element={<Kendaraan />} />
-            <Route path="kendaraan/detail" element={<Detail />} />
-            <Route path="kendaraan/detail/:id" element={<Detail />} />
-            <Route path="pemesanan" element={<Pemesanan />} />
-            <Route path="pemesanan/baru" element={<Booking />} />
-            <Route path="handover" element={<Handover />} />
-            <Route path="lokasi" element={<Lokasi />} />
-            <Route path="maintenance" element={<Maintenance />} />
-            <Route path="notifikasi" element={<Notifikasi />} />
-            <Route path="pembayaran" element={<Pembayaran />} />
+
+          {/* Protected Operational Routes (Authenticated Staff & Admin) */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="kendaraan" element={<Kendaraan />} />
+              <Route path="kendaraan/detail" element={<Detail />} />
+              <Route path="kendaraan/detail/:id" element={<Detail />} />
+              <Route path="pemesanan" element={<Pemesanan />} />
+              <Route path="pemesanan/baru" element={<Booking />} />
+              <Route path="handover" element={<Handover />} />
+              <Route path="lokasi" element={<Lokasi />} />
+              <Route path="maintenance" element={<Maintenance />} />
+              <Route path="notifikasi" element={<Notifikasi />} />
+              <Route path="pembayaran" element={<Pembayaran />} />
+            </Route>
           </Route>
           <Route path="*" element={<NotFoundRedirect />} />
         </Routes>
