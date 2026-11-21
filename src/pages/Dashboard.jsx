@@ -136,7 +136,6 @@ export default function Dashboard() {
     }).format(new Date())
   }, [])
 
-<<<<<<< HEAD
   // Kalkulasi statistik armada dinamis dari database live
   const totalKendaraan = vehicles.length
   const totalTersedia = vehicles.filter(
@@ -148,80 +147,6 @@ export default function Dashboard() {
   const totalMaintenance = vehicles.filter(
     (v) => v.status === 'In Maintenance' || v.status === 'Maintenance'
   ).length
-
-=======
-  // Vehicle data for "Kondisi Kendaraan"
-  const sampleVehicles = [
-    {
-      id: 'avanza-1',
-      name: 'Toyota Avanza',
-      variant: 'Tipe G 1.5 M/T • Putih Metalik',
-      plate: 'B 1234 AB',
-      status: 'available',
-      statusLabel: 'Tersedia',
-      statusBadgeBg: 'bg-[#DCFCE7]',
-      statusBadgeText: 'text-[#15803D]',
-      image:
-        'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80',
-      healthCondition: 'Kondisi baik',
-      healthPercent: 94,
-      healthColor: 'text-[#15803D]',
-      healthBarColor: 'bg-[#15803D]',
-      lastService: 'Servis terakhir: 18 Okt 2024',
-      location: 'Depot Pusat',
-      detailUrl: '/kendaraan/detail?id=k-avanza',
-    },
-    {
-      id: 'brio-1',
-      name: 'Honda Brio',
-      variant: 'RS 1.2 CVT • Phoenix Orange',
-      plate: 'L 5678 CD',
-      status: 'rented',
-      statusLabel: 'Sedang Disewa',
-      statusBadgeBg: 'bg-[#DBEAFE]',
-      statusBadgeText: 'text-[#2563EB]',
-      image:
-        'https://images.unsplash.com/photo-1590362891988-f77804783182?auto=format&fit=crop&w=1200&q=80',
-      renterName: 'Bpk. Dimas',
-      city: 'Sidoarjo, Jawa Timur',
-      returnDate: 'Return: 28 Okt 2024',
-      gpsStatus: 'Live GPS On',
-      detailUrl: '/kendaraan/detail?id=k-brio',
-    },
-    {
-      id: 'xpander-1',
-      name: 'Mitsubishi Xpander',
-      variant: 'Ultimate 1.5 A/T • Abu-abu Titanium',
-      plate: 'B 9012 EF',
-      status: 'maintenance',
-      statusLabel: 'Maintenance',
-      statusBadgeBg: 'bg-[#FEF3C7]',
-      statusBadgeText: 'text-[#B45309]',
-      image:
-        'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80',
-      issueLabel: 'Rem perlu diperiksa',
-      healthPercent: 42,
-      healthColor: 'text-[#B45309]',
-      healthBarColor: 'bg-[#B45309]',
-      scheduleInfo: 'Jadwal bengkel: Besok lusa',
-      location: 'Bengkel Rekanan',
-      detailUrl: '/kendaraan/detail?id=k-xpander',
-    },
-  ]
-
-  // Kalkulasi statistik armada dinamis dari database live
-  const totalKendaraan = vehicles.length
-  const totalTersedia = vehicles.filter(
-    (v) => v.status === 'Available' || v.status === 'Tersedia'
-  ).length
-  const totalDisewa = vehicles.filter(
-    (v) => v.status === 'Rented' || v.status === 'Disewa'
-  ).length
-  const totalMaintenance = vehicles.filter(
-    (v) => v.status === 'In Maintenance' || v.status === 'Maintenance'
-  ).length
-
->>>>>>> feature/frontend-brand-update
   const pctTersedia =
     totalKendaraan > 0 ? ((totalTersedia / totalKendaraan) * 100).toFixed(1) : '0'
   const pctDisewa =
@@ -587,17 +512,10 @@ export default function Dashboard() {
                   type="button"
                   aria-pressed={activeVehicleStatus === 'maintenance'}
                   onClick={() => setActiveVehicleStatus('maintenance')}
-<<<<<<< HEAD
                   className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeVehicleStatus === 'maintenance'
                       ? 'bg-white text-[#111D23] shadow-xs'
                       : 'bg-[#E3F0F8] text-[#47607E] hover:bg-[#D4E6F2]'
                     }`}
-=======
-                  className={`cursor-pointer rounded-lg px-3 py-1.5 font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activeVehicleStatus === 'maintenance'
-                      ? 'bg-white text-[#111D23] shadow-xs'
-                      : 'bg-[#E3F0F8] text-[#47607E] hover:bg-[#D4E6F2]'
-                    }`}
->>>>>>> feature/frontend-brand-update
                 >
                   Maintenance ({totalMaintenance})
                 </button>
@@ -714,7 +632,6 @@ export default function Dashboard() {
                   const statusType = isAvailable
                     ? 'success'
                     : isRented
-<<<<<<< HEAD
                       ? 'info'
                       : 'warning'
                   const statusLabel = isAvailable
@@ -722,15 +639,6 @@ export default function Dashboard() {
                     : isRented
                       ? 'Sedang Disewa'
                       : 'Perlu Servis'
-=======
-                      ? 'info'
-                      : 'warning'
-                  const statusLabel = isAvailable
-                    ? 'Tersedia'
-                    : isRented
-                      ? 'Sedang Disewa'
-                      : 'Perlu Servis'
->>>>>>> feature/frontend-brand-update
 
                   const vehicleName = `${vehicle.merk} ${vehicle.tipe}`
                   const detailUrl = `/kendaraan/detail?id=${vehicle.vehicle_id}`
@@ -862,21 +770,12 @@ export default function Dashboard() {
                       <div className="mt-4 flex items-center justify-between border-t border-[#E3F0F8] pt-3.5">
                         <div className="flex items-center gap-1.5 font-plusJakartaSans text-[11px] font-medium text-[#47607E]">
                           <span
-<<<<<<< HEAD
                             className={`h-1.5 w-1.5 rounded-full ${isAvailable
                                 ? 'bg-[#15803D]'
                                 : isRented
                                   ? 'bg-[#2563EB]'
                                   : 'bg-[#B45309]'
                               }`}
-=======
-                            className={`h-1.5 w-1.5 rounded-full ${isAvailable
-                                ? 'bg-[#15803D]'
-                                : isRented
-                                  ? 'bg-[#2563EB]'
-                                  : 'bg-[#B45309]'
-                              }`}
->>>>>>> feature/frontend-brand-update
                           />
                           <span className="truncate max-w-[130px]">
                             {vehicle.deskripsi || 'Depot Pusat'}
