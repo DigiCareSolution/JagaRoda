@@ -1,16 +1,9 @@
-<<<<<<< HEAD
-import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import Header from '../components/Header'
-import StatusBadge from '../components/StatusBadge'
-=======
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Header from '../components/Header'
 import StatusBadge from '../components/StatusBadge'
 import VehicleGallery from '../components/VehicleGallery'
 import { vehiclesData, getVehicleById } from '../data/vehicles'
->>>>>>> feature/frontend-brand-update
 import {
   deleteVehicle,
   deleteVehiclePhoto,
@@ -26,11 +19,6 @@ const DEFAULT_FALLBACK_IMAGE =
 export default function Detail() {
   const navigate = useNavigate()
   const { id: paramId } = useParams()
-<<<<<<< HEAD
-  const [searchParams] = useSearchParams()
-  const queryId = searchParams.get('id')
-  const vehicleId = paramId || queryId
-=======
   const [searchParams, setSearchParams] = useSearchParams()
   const queryId = searchParams.get('id')
   const vehicleId = queryId || paramId
@@ -45,7 +33,6 @@ export default function Detail() {
   const handleSwitchVehicle = (newId) => {
     setSearchParams({ id: newId })
   }
->>>>>>> feature/frontend-brand-update
 
   const [vehicle, setVehicle] = useState(null)
   const [isLoading, setIsLoading] = useState(Boolean(vehicleId))
@@ -179,7 +166,6 @@ export default function Detail() {
   const statusBadgeVariant = isAvailable
     ? 'success'
     : isRented
-<<<<<<< HEAD
       ? 'info'
       : 'warning'
   const statusBadgeLabel = isAvailable
@@ -187,15 +173,6 @@ export default function Detail() {
     : isRented
       ? 'Sedang Disewa'
       : 'Perlu Servis'
-=======
-      ? 'info'
-      : 'warning'
-  const statusBadgeLabel = isAvailable
-    ? 'Tersedia'
-    : isRented
-      ? 'Sedang Disewa'
-      : 'Perlu Servis'
->>>>>>> feature/frontend-brand-update
 
   const photos =
     vehicle?.vehicle_photos && vehicle.vehicle_photos.length > 0
@@ -212,14 +189,11 @@ export default function Detail() {
       value: vehicle?.tahun ? String(vehicle.tahun) : '2022',
     },
     { label: 'Warna Bodi', value: vehicle?.warna || 'Putih Metalik' },
-<<<<<<< HEAD
-=======
     { label: 'Transmisi', value: vehicle?.transmisi || vehicle?.transmission || 'Manual' },
     { label: 'Odometer', value: vehicle?.odometer || vehicle?.kilometer || '40.120 km', isMono: true },
     { label: 'Bahan Bakar', value: vehicle?.bahan_bakar || vehicle?.fuel || 'Bensin' },
     { label: 'Kapasitas Kursi', value: vehicle?.kapasitas_kursi || vehicle?.seats || '7' },
     { label: 'Depo Penempatan', value: vehicle?.depo || vehicle?.pool || 'Depo Utama' },
->>>>>>> feature/frontend-brand-update
     {
       label: 'Tarif Sewa',
       value: `Rp ${Number(vehicle?.tarif_per_hari || 350000).toLocaleString('id-ID')} / hari`,
@@ -474,17 +448,10 @@ export default function Detail() {
                           {label}
                         </span>
                         <span
-<<<<<<< HEAD
-                          className={`mt-1.5 font-semibold text-[#263238] ${isMono
-                              ? 'font-liberationMono text-xs'
-                              : 'font-plusJakartaSans text-xs'
-                            }`}
-=======
                           className={`mt-1.5 font-semibold text-[#263238] ${isMono
                             ? 'font-liberationMono text-xs'
                             : 'font-plusJakartaSans text-xs'
                             }`}
->>>>>>> feature/frontend-brand-update
                         >
                           {value}
                         </span>
@@ -503,17 +470,10 @@ export default function Detail() {
                           type="button"
                           disabled={isUpdatingStatus || vehicleStatus === 'Available'}
                           onClick={() => handleStatusChange('Available')}
-<<<<<<< HEAD
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'Available'
-                              ? 'bg-[#DCFCE7] text-[#15803D]'
-                              : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
-=======
                           className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'Available'
                             ? 'bg-[#DCFCE7] text-[#15803D]'
                             : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
                             }`}
->>>>>>> feature/frontend-brand-update
                         >
                           Tersedia
                         </button>
@@ -521,17 +481,10 @@ export default function Detail() {
                           type="button"
                           disabled={isUpdatingStatus || vehicleStatus === 'Rented'}
                           onClick={() => handleStatusChange('Rented')}
-<<<<<<< HEAD
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'Rented'
-                              ? 'bg-[#DBEAFE] text-[#2563EB]'
-                              : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
-=======
                           className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'Rented'
                             ? 'bg-[#DBEAFE] text-[#2563EB]'
                             : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
                             }`}
->>>>>>> feature/frontend-brand-update
                         >
                           Disewa
                         </button>
@@ -541,17 +494,10 @@ export default function Detail() {
                             isUpdatingStatus || vehicleStatus === 'In Maintenance'
                           }
                           onClick={() => handleStatusChange('In Maintenance')}
-<<<<<<< HEAD
-                          className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'In Maintenance'
-                              ? 'bg-[#FEF3C7] text-[#B45309]'
-                              : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
-                            }`}
-=======
                           className={`rounded-md px-2.5 py-1 font-semibold transition-colors cursor-pointer ${vehicleStatus === 'In Maintenance'
                             ? 'bg-[#FEF3C7] text-[#B45309]'
                             : 'bg-white border border-[#C7D6E3] text-[#47607E] hover:bg-[#E9F6FD]'
                             }`}
->>>>>>> feature/frontend-brand-update
                         >
                           Maintenance
                         </button>
@@ -651,17 +597,10 @@ export default function Detail() {
                               src={p.photo_url}
                               alt={`Foto ${idx + 1}`}
                               onClick={() => setSelectedPhotoIndex(idx)}
-<<<<<<< HEAD
-                              className={`h-full w-full object-cover cursor-pointer ${selectedPhotoIndex === idx
-                                  ? 'ring-2 ring-[#0F766E]'
-                                  : 'opacity-80 hover:opacity-100'
-                                }`}
-=======
                               className={`h-full w-full object-cover cursor-pointer ${selectedPhotoIndex === idx
                                 ? 'ring-2 ring-[#0F766E]'
                                 : 'opacity-80 hover:opacity-100'
                                 }`}
->>>>>>> feature/frontend-brand-update
                             />
                             {p.photo_id && (
                               <button
@@ -681,8 +620,6 @@ export default function Detail() {
                       </div>
                     </div>
                   )}
-<<<<<<< HEAD
-=======
 
                   {/* Galeri visual dari desain frontend tetap dipertahankan.
                       Foto kendaraan aktual dari backend tetap tersedia di galeri R2 di atas. */}
@@ -701,7 +638,6 @@ export default function Detail() {
                       }
                     />
                   )}
->>>>>>> feature/frontend-brand-update
                 </div >
               </div >
             </div >
@@ -773,11 +709,7 @@ export default function Detail() {
       </span>
     </div>
     <span className="font-plusJakartaSans text-base font-bold text-[#0F766E]">
-<<<<<<< HEAD
-  88.5 / 100
-=======
                     {activeVehicle?.healthPercent ?? 88.5} / 100
->>>>>>> feature/frontend-brand-update
                   </span >
                 </div >
               </div >
@@ -809,8 +741,6 @@ export default function Detail() {
         </Link>
       </div>
 
-<<<<<<< HEAD
-=======
                 {/* Next Service Alert dari tampilan frontend */}
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-[#DDEAF2] bg-[#E9F6FD] p-4">
                   <div className="flex flex-col gap-0.5">
@@ -829,7 +759,6 @@ export default function Detail() {
                   </span>
                 </div>
 
->>>>>>> feature/frontend-brand-update
   {/* Condition Note */ }
   <div className="flex items-start gap-2.5 rounded-lg border border-[#DDEAF2] bg-[#F8FAFC] p-3 text-xs text-[#3E4947]">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[#0F766E]" aria-hidden="true">

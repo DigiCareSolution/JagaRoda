@@ -568,11 +568,7 @@ export default function Kendaraan() {
                         <div className="flex items-start gap-2 rounded-lg bg-[#E9F6FD] p-2.5">
                           <p className="line-clamp-2 font-plusJakartaSans text-[12px] leading-snug text-[#3E4947]">
                             {vehicle.deskripsi ||
-<<<<<<< HEAD
                               `Kondisi prima siap operasional. STNK: ${vehicle.nomor_stnk || 'Aktif'
-=======
-                              `Kondisi prima siap operasional. STNK: ${vehicle.nomor_stnk || 'Aktif'
->>>>>>> feature/frontend-brand-update
                               }.`}
                           </p>
                         </div>
@@ -659,17 +655,10 @@ export default function Kendaraan() {
                   aria-current={activePage === page ? 'page' : undefined}
                   aria-label={`Halaman ${page}`}
                   onClick={() => setActivePage(page)}
-<<<<<<< HEAD
                   className={`flex h-8 w-8 items-center justify-center rounded-lg font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activePage === page
                       ? 'bg-[#0F766E] text-white'
                       : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
                     }`}
-=======
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg font-plusJakartaSans text-xs font-semibold transition-colors sm:text-[13px] ${activePage === page
-                      ? 'bg-[#0F766E] text-white'
-                      : 'bg-[#E9F6FD] text-[#47607E] hover:bg-[#D4E6F2]'
-                    }`}
->>>>>>> feature/frontend-brand-update
                 >
                   {page}
                 </button>
@@ -729,17 +718,10 @@ export default function Kendaraan() {
 
             {modalFeedback.message && (
               <div
-<<<<<<< HEAD
                 className={`mt-4 rounded-lg p-3 text-xs font-semibold ${modalFeedback.type === 'success'
                     ? 'border border-[#BFE8E2] bg-[#F0FBF9] text-[#0F625C]'
                     : 'border border-[#FECDD3] bg-[#FFF1F2] text-[#BA1A1A]'
                   }`}
-=======
-                className={`mt-4 rounded-lg p-3 text-xs font-semibold ${modalFeedback.type === 'success'
-                    ? 'border border-[#BFE8E2] bg-[#F0FBF9] text-[#0F625C]'
-                    : 'border border-[#FECDD3] bg-[#FFF1F2] text-[#BA1A1A]'
-                  }`}
->>>>>>> feature/frontend-brand-update
               >
                 {modalFeedback.message}
               </div>
